@@ -5,6 +5,7 @@ import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
 import { dreamteamAuth } from "./middlewares/dreamteam-auth";
+import { fileURLToPath } from "node:url";
 
 const app: Express = express();
 app.set("trust proxy", 1);
@@ -35,5 +36,12 @@ app.use(express.urlencoded({ extended: true }));
 app.use(dreamteamAuth);
 
 app.use("/api", router);
+
+if (process.env.SERVE_WEB === "true") {
+  const webRoot = fileURLToPath(new URL("../../dreamteam-misaki/dist/public/", import.meta.url));
+  app.use("/api", (_req, res) => { res.status(404).json({ error: "Endpoint introuvable." }); });
+  app.use(express.static(webRoot));
+  app.get("/{*path}", (_req, res) => { res.sendFile(`${webRoot}index.html`); });
+}
 
 export default app;

@@ -41,6 +41,7 @@ export const GetDreamTeamDashboardResponse = zod.object({
   "name": zod.string(),
   "captainDiscordId": zod.string(),
   "captainName": zod.string(),
+  "joinCode": zod.string().optional(),
   "memberCount": zod.number().int(),
   "voiceHours": zod.number(),
   "activeMembers": zod.number().int()
@@ -65,7 +66,7 @@ export const GetMyTeamResponse = zod.object({
   "discordId": zod.string(),
   "username": zod.string(),
   "avatarUrl": zod.string().nullable(),
-  "role": zod.enum(['MEMBER', 'CAPTAIN', 'ADMIN_PLUS']),
+  "role": zod.enum(['MEMBER', 'CAPTAIN', 'ADMIN', 'ADMIN_PLUS']),
   "teamId": zod.string().uuid().nullable(),
   "teamName": zod.string().nullable(),
   "voiceHours": zod.number(),
@@ -102,10 +103,16 @@ export const JoinTeamResponse = zod.object({
 export const renameMyTeamBodyNameMin = 2;
 export const renameMyTeamBodyNameMax = 32;
 
+export const renameMyTeamBodyJoinCodeMin = 4;
+export const renameMyTeamBodyJoinCodeMax = 32;
+
+
+export const renameMyTeamBodyJoinCodeRegExp = new RegExp('^[A-Za-z0-9-]+$');
 
 
 export const RenameMyTeamBody = zod.object({
-  "name": zod.string().min(renameMyTeamBodyNameMin).max(renameMyTeamBodyNameMax)
+  "name": zod.string().min(renameMyTeamBodyNameMin).max(renameMyTeamBodyNameMax),
+  "joinCode": zod.string().min(renameMyTeamBodyJoinCodeMin).max(renameMyTeamBodyJoinCodeMax).regex(renameMyTeamBodyJoinCodeRegExp).optional()
 })
 
 export const RenameMyTeamResponse = zod.object({
@@ -135,7 +142,7 @@ export const RemoveMyTeamMemberResponse = zod.void()
  */
 export const ListAdminMembersQueryParams = zod.object({
   "search": zod.coerce.string().optional(),
-  "role": zod.enum(['MEMBER', 'CAPTAIN', 'ADMIN_PLUS']).optional()
+  "role": zod.enum(['MEMBER', 'CAPTAIN', 'ADMIN', 'ADMIN_PLUS']).optional()
 })
 
 export const ListAdminMembersResponse = zod.object({
@@ -143,7 +150,7 @@ export const ListAdminMembersResponse = zod.object({
   "discordId": zod.string(),
   "username": zod.string(),
   "avatarUrl": zod.string().nullable(),
-  "role": zod.enum(['MEMBER', 'CAPTAIN', 'ADMIN_PLUS']),
+  "role": zod.enum(['MEMBER', 'CAPTAIN', 'ADMIN', 'ADMIN_PLUS']),
   "teamId": zod.string().uuid().nullable(),
   "teamName": zod.string().nullable(),
   "voiceHours": zod.number(),
@@ -165,14 +172,14 @@ export const UpdateMemberRoleParams = zod.object({
 })
 
 export const UpdateMemberRoleBody = zod.object({
-  "role": zod.enum(['MEMBER', 'CAPTAIN', 'ADMIN_PLUS'])
+  "role": zod.enum(['MEMBER', 'CAPTAIN', 'ADMIN', 'ADMIN_PLUS'])
 })
 
 export const UpdateMemberRoleResponse = zod.object({
   "discordId": zod.string(),
   "username": zod.string(),
   "avatarUrl": zod.string().nullable(),
-  "role": zod.enum(['MEMBER', 'CAPTAIN', 'ADMIN_PLUS']),
+  "role": zod.enum(['MEMBER', 'CAPTAIN', 'ADMIN', 'ADMIN_PLUS']),
   "teamId": zod.string().uuid().nullable(),
   "teamName": zod.string().nullable(),
   "voiceHours": zod.number(),
@@ -189,6 +196,7 @@ export const ListAdminTeamsResponseItem = zod.object({
   "name": zod.string(),
   "captainDiscordId": zod.string(),
   "captainName": zod.string(),
+  "joinCode": zod.string().optional(),
   "memberCount": zod.number().int(),
   "voiceHours": zod.number(),
   "activeMembers": zod.number().int()
@@ -206,10 +214,16 @@ export const UpdateAdminTeamParams = zod.object({
 export const updateAdminTeamBodyNameMin = 2;
 export const updateAdminTeamBodyNameMax = 32;
 
+export const updateAdminTeamBodyJoinCodeMin = 4;
+export const updateAdminTeamBodyJoinCodeMax = 32;
+
+
+export const updateAdminTeamBodyJoinCodeRegExp = new RegExp('^[A-Za-z0-9-]+$');
 
 
 export const UpdateAdminTeamBody = zod.object({
-  "name": zod.string().min(updateAdminTeamBodyNameMin).max(updateAdminTeamBodyNameMax)
+  "name": zod.string().min(updateAdminTeamBodyNameMin).max(updateAdminTeamBodyNameMax),
+  "joinCode": zod.string().min(updateAdminTeamBodyJoinCodeMin).max(updateAdminTeamBodyJoinCodeMax).regex(updateAdminTeamBodyJoinCodeRegExp).optional()
 })
 
 export const UpdateAdminTeamResponse = zod.object({
@@ -249,7 +263,7 @@ export const AddAdminTeamMemberResponse = zod.object({
   "discordId": zod.string(),
   "username": zod.string(),
   "avatarUrl": zod.string().nullable(),
-  "role": zod.enum(['MEMBER', 'CAPTAIN', 'ADMIN_PLUS']),
+  "role": zod.enum(['MEMBER', 'CAPTAIN', 'ADMIN', 'ADMIN_PLUS']),
   "teamId": zod.string().uuid().nullable(),
   "teamName": zod.string().nullable(),
   "voiceHours": zod.number(),

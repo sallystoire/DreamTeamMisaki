@@ -51,6 +51,8 @@ import {
 import { updateActiveVoiceTeam } from "../lib/voiceBot";
 import {
   requireAdminPlus,
+  requireSiteAdmin,
+  configuredAdminIds,
   requireDreamteamUser,
 } from "../middlewares/dreamteam-auth";
 import { logger } from "../lib/logger";
@@ -224,8 +226,8 @@ router.patch("/teams/me", async (req, res): Promise<void> => {
     res.status(400).json({ error: body.error.message });
     return;
   }
-  if (user.role !== "CAPTAIN") {
-    res.status(403).json({ error: "Seul un capitaine peut renommer son équipe." });
+  if (user.role !== "ADMIN" && user.role !== "ADMIN_PLUS") {
+    res.status(403).json({ error: "Seuls les Admin et Admin+ peuvent renommer une équipe." });
     return;
   }
   const [team] = await db
@@ -298,7 +300,7 @@ router.delete("/teams/me/members/:discordId", async (req, res): Promise<void> =>
 });
 
 router.get("/admin/members", async (req, res): Promise<void> => {
-  const admin = requireAdminPlus(req, res);
+  const admin = requireSiteAdmin(req, res);
   if (!admin) return;
   const params = ListAdminMembersQueryParams.safeParse(req.query);
   if (!params.success) {
@@ -334,7 +336,11 @@ router.patch("/admin/members/:discordId/role", async (req, res): Promise<void> =
     return;
   }
   const discordId = params.data.discordId;
-  const role = body.data.role as "MEMBER" | "CAPTAIN" | "ADMIN_PLUS";
+  const role = body.data.role;
+  if (configuredAdminIds().has(discordId) && role !== "ADMIN_PLUS") {
+    res.status(400).json({ error: "Cet Admin+ initial est protégé par la configuration du serveur." });
+    return;
+  }
   const [target] = await db
     .select()
     .from(dreamUsersTable)
@@ -419,13 +425,15 @@ router.patch("/admin/members/:discordId/role", async (req, res): Promise<void> =
 });
 
 router.get("/admin/teams", async (req, res): Promise<void> => {
-  if (!requireAdminPlus(req, res)) return;
+  if (!requireSiteAdmin(req, res)) return;
   const dashboard = await getDreamTeamDashboard();
-  res.json(ListAdminTeamsResponse.parse(dashboard.leaderboard));
+  const teams = await db.select({ id: dreamTeamsTable.id, joinCode: dreamTeamsTable.joinCode }).from(dreamTeamsTable).where(isNull(dreamTeamsTable.archivedAt));
+  const codes = new Map(teams.map((team) => [team.id, team.joinCode]));
+  res.json(ListAdminTeamsResponse.parse(dashboard.leaderboard.map((team) => ({ ...team, joinCode: codes.get(team.id) }))));
 });
 
 router.patch("/admin/teams/:teamId", async (req, res): Promise<void> => {
-  const admin = requireAdminPlus(req, res);
+  const admin = requireSiteAdmin(req, res);
   if (!admin) return;
   const params = UpdateAdminTeamParams.safeParse(req.params);
   const body = UpdateAdminTeamBody.safeParse(req.body);
@@ -437,9 +445,16 @@ router.patch("/admin/teams/:teamId", async (req, res): Promise<void> => {
     res.status(400).json({ error: body.error.message });
     return;
   }
+  if (body.data.joinCode) {
+    const [duplicate] = await db.select({ id: dreamTeamsTable.id }).from(dreamTeamsTable).where(eq(dreamTeamsTable.joinCode, body.data.joinCode.trim().toUpperCase())).limit(1);
+    if (duplicate && duplicate.id !== params.data.teamId) {
+      res.status(409).json({ error: "Ce code est déjà utilisé." });
+      return;
+    }
+  }
   const [team] = await db
     .update(dreamTeamsTable)
-    .set({ name: body.data.name.trim() })
+    .set({ name: body.data.name.trim(), ...(body.data.joinCode ? { joinCode: body.data.joinCode.trim().toUpperCase() } : {}) })
     .where(
       and(
         eq(dreamTeamsTable.id, params.data.teamId),
@@ -459,7 +474,7 @@ router.patch("/admin/teams/:teamId", async (req, res): Promise<void> => {
 });
 
 router.delete("/admin/teams/:teamId", async (req, res): Promise<void> => {
-  const admin = requireAdminPlus(req, res);
+  const admin = requireSiteAdmin(req, res);
   if (!admin) return;
   const params = ArchiveAdminTeamParams.safeParse(req.params);
   if (!params.success) {
@@ -501,7 +516,7 @@ router.delete("/admin/teams/:teamId", async (req, res): Promise<void> => {
 });
 
 router.post("/admin/teams/:teamId/members", async (req, res): Promise<void> => {
-  const admin = requireAdminPlus(req, res);
+  const admin = requireSiteAdmin(req, res);
   if (!admin) return;
   const params = AddAdminTeamMemberParams.safeParse(req.params);
   const body = AddAdminTeamMemberBody.safeParse(req.body);
@@ -571,7 +586,7 @@ router.post("/admin/teams/:teamId/members", async (req, res): Promise<void> => {
 router.delete(
   "/admin/teams/:teamId/members/:discordId",
   async (req, res): Promise<void> => {
-    const admin = requireAdminPlus(req, res);
+    const admin = requireSiteAdmin(req, res);
     if (!admin) return;
     const params = RemoveAdminTeamMemberParams.safeParse(req.params);
     if (!params.success) {
@@ -602,7 +617,7 @@ router.delete(
 );
 
 router.get("/admin/challenges", async (req, res): Promise<void> => {
-  if (!requireAdminPlus(req, res)) return;
+  if (!requireSiteAdmin(req, res)) return;
   await getLatestChallenge();
   const rows = await db
     .select()

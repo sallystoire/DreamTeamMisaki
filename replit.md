@@ -37,6 +37,8 @@ Site privé de compétition hebdomadaire : connexion Discord, équipes de capita
 - Les permissions sont contrôlées par l’API, pas seulement par les pages React. Les Admin+ initiaux sont désignés par `ADMIN_DISCORD_IDS`.
 - Le site n’importe pas les 200 000 membres du serveur : seuls les membres qui se connectent sont inscrits au roster.
 - Le bot comptabilise uniquement la durée en vocal dans les salons explicitement configurés; aucun audio n’est enregistré.
+- Le bot suit uniquement les comptes inscrits qui appartiennent à une équipe. Le serveur et les salons sont configurés explicitement par leurs IDs Discord.
+- Les capitaines gèrent leur roster, mais seuls Admin et Admin+ modifient le nom et le code d’équipe. Les attributions de rôle et le lancement des défis restent réservés aux Admin+.
 - La clôture d’un défi et le tirage pondéré sont exécutés côté serveur; le capitaine éligible possède deux tickets.
 
 ## Product
@@ -53,6 +55,8 @@ Pas de préférence générale à noter pour le moment.
 - `DISCORD_VOICE_CHANNEL_IDS` accepte une liste d’identifiants de salons autorisés, séparés par des virgules.
 - Après une modification de `lib/api-spec/openapi.yaml`, lancer le codegen avant de vérifier les applications consommatrices.
 - Après une modification du schéma Drizzle, lancer `pnpm --filter @workspace/db run push` en développement.
+- L’interface utilise Outfit et la direction sombre rose/violette fournie par l’utilisateur. Le logo remplace le nom dans l’en-tête.
+- Voir `RAILWAY.md` pour le déploiement externe en service unique; Railway n’est pas publié automatiquement depuis cet espace.
 
 ## Pointers
 

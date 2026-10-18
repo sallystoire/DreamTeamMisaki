@@ -135,4 +135,4 @@ export type DreamChallenge = typeof dreamChallengesTable.$inferSelect;
 export type DreamVoiceSession = typeof dreamVoiceSessionsTable.$inferSelect;
 export type DreamAuthSession = typeof dreamAuthSessionsTable.$inferSelect;
 export type DreamAuditLog = typeof dreamAuditLogTable.$inferSelect;
-export type DreamSiteRole = "MEMBER" | "CAPTAIN" | "ADMIN_PLUS";
+export type DreamSiteRole = "MEMBER" | "CAPTAIN" | "ADMIN" | "ADMIN_PLUS";

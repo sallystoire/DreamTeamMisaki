@@ -12,4 +12,10 @@ export interface TeamNameUpdate {
      * @maxLength 32
      */
   name: string;
+  /**
+     * @minLength 4
+     * @maxLength 32
+     * @pattern ^[A-Za-z0-9-]+$
+     */
+  joinCode?: string;
 }

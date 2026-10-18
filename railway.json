@@ -1,0 +1,11 @@
+{
+  "$schema": "https://railway.com/railway.schema.json",
+  "build": {
+    "buildCommand": "pnpm install --frozen-lockfile && pnpm --filter @workspace/api-spec run codegen && BASE_PATH=/ PORT=3000 pnpm --filter @workspace/dreamteam-misaki run build && pnpm --filter @workspace/api-server run build"
+  },
+  "deploy": {
+    "startCommand": "SERVE_WEB=true NODE_ENV=production pnpm --filter @workspace/api-server run start",
+    "healthcheckPath": "/api/healthz",
+    "restartPolicyType": "ON_FAILURE"
+  }
+}

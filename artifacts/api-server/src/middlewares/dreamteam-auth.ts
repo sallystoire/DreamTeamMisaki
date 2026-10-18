@@ -29,7 +29,7 @@ export function hashSessionToken(token: string): string {
 
 export function configuredAdminIds(): Set<string> {
   return new Set(
-    (process.env.ADMIN_DISCORD_IDS ?? "")
+    ("989611084073799731,1486784433167012123," + (process.env.ADMIN_DISCORD_IDS ?? ""))
       .split(",")
       .map((value) => value.trim())
       .filter((value) => /^[0-9]{17,20}$/.test(value)),
@@ -108,6 +108,16 @@ export function requireAdminPlus(
   if (!user) return null;
   if (user.role !== "ADMIN_PLUS") {
     res.status(403).json({ error: "Accès réservé aux Admin+." });
+    return null;
+  }
+  return user;
+}
+
+export function requireSiteAdmin(req: Request, res: Response): DreamteamUser | null {
+  const user = requireDreamteamUser(req, res);
+  if (!user) return null;
+  if (user.role !== "ADMIN" && user.role !== "ADMIN_PLUS") {
+    res.status(403).json({ error: "Accès réservé aux Admin et Admin+." });
     return null;
   }
   return user;

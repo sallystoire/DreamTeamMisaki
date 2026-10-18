@@ -11,6 +11,7 @@ export interface TeamProgress {
   name: string;
   captainDiscordId: string;
   captainName: string;
+  joinCode?: string;
   memberCount: number;
   voiceHours: number;
   activeMembers: number;

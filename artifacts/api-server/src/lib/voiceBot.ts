@@ -29,7 +29,7 @@ async function startTrackedSession(
     .from(dreamUsersTable)
     .where(eq(dreamUsersTable.discordId, discordId))
     .limit(1);
-  if (!user) return;
+  if (!user?.teamId) return;
 
   const [existing] = await db
     .select({ id: dreamVoiceSessionsTable.id })
@@ -90,13 +90,18 @@ export async function updateActiveVoiceTeam(
     )
     .limit(1);
 
-  if (!active || active.teamId === nextTeamId) return;
+  if (!active) {
+    if (nextTeamId) await syncMemberVoiceState(discordId);
+    return;
+  }
+  if (active.teamId === nextTeamId) return;
 
   const now = new Date();
   await db
     .update(dreamVoiceSessionsTable)
     .set({ endedAt: now })
     .where(eq(dreamVoiceSessionsTable.id, active.id));
+  if (!nextTeamId) return;
   await db.insert(dreamVoiceSessionsTable).values({
     id: randomUUID(),
     discordId,

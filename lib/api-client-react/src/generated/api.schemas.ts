@@ -15,6 +15,7 @@ export type SiteRole = typeof SiteRole[keyof typeof SiteRole];
 export const SiteRole = {
   MEMBER: 'MEMBER',
   CAPTAIN: 'CAPTAIN',
+  ADMIN: 'ADMIN',
   ADMIN_PLUS: 'ADMIN_PLUS',
 } as const;
 
@@ -64,6 +65,7 @@ export interface TeamProgress {
   name: string;
   captainDiscordId: string;
   captainName: string;
+  joinCode?: string;
   memberCount: number;
   voiceHours: number;
   activeMembers: number;
@@ -121,6 +123,12 @@ export interface TeamNameUpdate {
      * @maxLength 32
      */
   name: string;
+  /**
+     * @minLength 4
+     * @maxLength 32
+     * @pattern ^[A-Za-z0-9-]+$
+     */
+  joinCode?: string;
 }
 
 export interface MemberRoleUpdate {

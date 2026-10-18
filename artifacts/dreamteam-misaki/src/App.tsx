@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import { type ReactNode, createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import {
   useAddAdminTeamMember,
@@ -12,7 +12,6 @@ import {
   useListAdminTeams,
   useRemoveAdminTeamMember,
   useRemoveMyTeamMember,
-  useRenameMyTeam,
   useUpdateAdminTeam,
   useUpdateMemberRole,
   getGetDreamTeamDashboardQueryKey,
@@ -64,49 +63,74 @@ function useCurrentUser() {
   return { user, loading, failed, reload: load };
 }
 
+type AuthState = ReturnType<typeof useCurrentUser>;
+const AuthContext = createContext<AuthState | null>(null);
+function AuthProvider({ children }: { children: ReactNode }) {
+  const auth = useCurrentUser();
+  return <AuthContext.Provider value={auth}>{children}</AuthContext.Provider>;
+}
+function useAuth(): AuthState {
+  const value = useContext(AuthContext);
+  if (!value) throw new Error('AuthProvider manquant');
+  return value;
+}
+const roleLabels: Record<string, string> = { MEMBER: 'Équipier', CAPTAIN: 'Capitaine', ADMIN: 'Admin', ADMIN_PLUS: 'Admin+' };
+const recruitmentUrl = (import.meta.env.VITE_RECRUITMENT_INVITE_URL as string | undefined)?.trim() || '';
+
 function Shell({ children }: { children: ReactNode }) {
   const [path] = useLocation();
-  const auth = useCurrentUser();
-  const botStatus = useGetDreamTeamDashboard({
-    query: { queryKey: getGetDreamTeamDashboardQueryKey(), refetchInterval: 20000 },
-  });
+  const auth = useAuth();
+  const role = auth.user?.role;
   const displayName = auth.user?.global_name || auth.user?.displayName || auth.user?.username;
+  const links: { href: string; label: string; gold?: boolean; testid: string }[] = [{ href: '/', label: 'La course', testid: 'link-race' }];
+  if (!auth.user) links.push({ href: '/captain', label: 'Devenir Capitaine', gold: true, testid: 'link-captain' });
+  else if (role === 'ADMIN_PLUS') links.push({ href: '/admin', label: 'Admin+', testid: 'link-admin-plus' });
+  else if (role === 'ADMIN') links.push({ href: '/admin', label: 'Gestion', testid: 'link-admin' });
+  else links.push({ href: '/team', label: 'Gestion', testid: 'link-team' });
   return (
     <div className="app-shell">
       <header className="site-header">
-        <Link href="/" className="brand" data-testid="link-home">
-          <span className="brand-mark">M</span><span>DREAMTEAM <em>MISAKI</em></span>
+        <Link href="/" className="brand" data-testid="link-home" aria-label="DreamTeam Misaki - accueil">
+          <img src={`${import.meta.env.BASE_URL}logo.jpg`} alt="DreamTeam Misaki" className="brand-logo" data-testid="img-logo" />
         </Link>
         <nav className="nav-links" aria-label="Navigation principale">
-          <Link href="/" className={`nav-link ${path === '/' ? 'active' : ''}`} data-testid="link-race">La course</Link>
-          <Link href="/team" className={`nav-link ${path === '/team' ? 'active' : ''}`} data-testid="link-team">Mon équipe</Link>
-          <Link href="/admin" className={`nav-link ${path === '/admin' ? 'active' : ''}`} data-testid="link-admin">Gestion</Link>
+          {links.map((l) => <Link key={l.href} href={l.href} className={`nav-link ${l.gold ? 'gold' : ''} ${path === l.href ? 'active' : ''}`} data-testid={l.testid}>{l.label}</Link>)}
         </nav>
         <div className="header-right">
-          <div className="live-chip" data-testid="status-voice-bot">
-            <span className={`live-dot ${botStatus.data?.botConnected ? '' : 'offline'}`} />
-            {botStatus.isLoading ? 'Vérification du bot' : botStatus.isError ? 'Statut indisponible' : botStatus.data?.botConnected ? 'Suivi vocal connecté' : 'Bot vocal hors ligne'}
-          </div>
           {auth.loading ? <span className="user-pill">Connexion…</span> : displayName ? (
             <a className="user-pill" href="/api/auth/logout" data-testid="link-logout" title="Se déconnecter">
-              {displayName} <LogOut size={13} aria-hidden="true" />
+              <span className="role-chip" data-testid="text-role">{roleLabels[role ?? 'MEMBER'] ?? 'Équipier'}</span>{displayName} <LogOut size={13} aria-hidden="true" />
             </a>
           ) : (
-            <a className="user-pill" href="/api/auth/discord/login" data-testid="link-login">
-              Discord <LogIn size={13} aria-hidden="true" />
+            <a className="btn btn-primary btn-small" href="/api/auth/discord/login" data-testid="link-login">
+              Connexion Discord <LogIn size={13} aria-hidden="true" />
             </a>
           )}
         </div>
       </header>
       <main className="main-content page-enter">{children}</main>
-      <nav className="mobile-menu" aria-label="Navigation mobile">
-        <Link href="/" className={`nav-link ${path === '/' ? 'active' : ''}`}>La course</Link>
-        <Link href="/team" className={`nav-link ${path === '/team' ? 'active' : ''}`}>Mon équipe</Link>
-        <Link href="/admin" className={`nav-link ${path === '/admin' ? 'active' : ''}`}>Gestion</Link>
-      </nav>
+      <footer className="site-footer" data-testid="footer">
+        <a href="https://discord.gg/misaki" target="_blank" rel="noopener noreferrer" data-testid="link-footer-discord">discord.gg/misaki - ouvre un ticket GS pour toute questions.</a>
+      </footer>
       <div className="sr-only" aria-live="polite">{auth.failed ? 'Impossible de vérifier la connexion Discord.' : ''}</div>
     </div>
   );
+}
+
+function CaptainPage() {
+  return <div className="captain-hero" data-testid="page-captain">
+    <div className="eyebrow" style={{ color: '#f5c75a' }}>Devenir Capitaine</div>
+    <h1>Mène ton équipe.</h1>
+    <p data-testid="text-captain-copy">Le poste de Capitaine est réservé aux gestions staffs de Misaki. Si tu as toi aussi envie de devenir Capitaine alors il faudra faire une candidature.</p>
+    {recruitmentUrl ? (
+      <a className="btn gold" href={recruitmentUrl} target="_blank" rel="noopener noreferrer" data-testid="link-recruitment">Rejoindre le serveur recrutement</a>
+    ) : (
+      <>
+        <button className="btn gold" disabled aria-disabled="true" data-testid="button-recruitment-pending">Rejoindre le serveur recrutement</button>
+        <p className="hint" style={{ marginTop: 16 }} data-testid="text-recruitment-pending">Le lien d’invitation du serveur recrutement n’est pas encore disponible. Il sera ajouté prochainement.</p>
+      </>
+    )}
+  </div>;
 }
 
 function ErrorBox({ onRetry, text = 'Le chargement a échoué. Réessaie dans un instant.' }: { onRetry: () => void; text?: string }) {
@@ -223,13 +247,12 @@ function HomePage() {
         </div>
       </>
     )}
-    <div className="footer-note"><span>MISAKI COMMUNITY · DÉFI HEBDOMADAIRE</span><span>Un serveur. Des équipes. Beaucoup de vocal.</span></div>
   </>;
 }
 
 function TeamPage() {
   const queryClient = useQueryClient();
-  const auth = useCurrentUser();
+  const auth = useAuth();
   const teamQuery = useGetMyTeam({
     query: {
       queryKey: getGetMyTeamQueryKey(),
@@ -237,12 +260,9 @@ function TeamPage() {
     },
   });
   const join = useJoinTeam();
-  const rename = useRenameMyTeam();
   const remove = useRemoveMyTeamMember();
   const [code, setCode] = useState('');
-  const [teamName, setTeamName] = useState('');
   const [feedback, setFeedback] = useState<Feedback>(null);
-  useEffect(() => { if (teamQuery.data?.team) setTeamName(teamQuery.data.team.name); }, [teamQuery.data?.team?.id, teamQuery.data?.team?.name]);
   const refresh = () => {
     void queryClient.invalidateQueries({ queryKey: getGetMyTeamQueryKey() });
     void queryClient.invalidateQueries({ queryKey: getGetDreamTeamDashboardQueryKey() });
@@ -252,10 +272,6 @@ function TeamPage() {
     setFeedback(null);
     join.mutate({ data: { code: code.trim() } }, { onSuccess: () => { setFeedback({ text: 'Tu as rejoint ton équipe. Bienvenue dans la course.', kind: 'success' }); setCode(''); refresh(); }, onError: () => setFeedback({ text: 'Code invalide ou impossible à rejoindre. Vérifie auprès du capitaine.', kind: 'error' }) });
   };
-  const submitRename = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    rename.mutate({ data: { name: teamName.trim() } }, { onSuccess: () => { setFeedback({ text: 'Nom d’équipe mis à jour.', kind: 'success' }); refresh(); }, onError: () => setFeedback({ text: 'Le nom n’a pas pu être modifié.', kind: 'error' }) });
-  };
   const removeMember = (member: Member) => {
     if (!window.confirm(`Retirer ${member.username} de ton équipe ?`)) return;
     remove.mutate({ discordId: member.discordId }, { onSuccess: () => { setFeedback({ text: `${member.username} a quitté l’équipe.`, kind: 'success' }); refresh(); }, onError: () => setFeedback({ text: 'Impossible de retirer ce membre.', kind: 'error' }) });
@@ -264,7 +280,7 @@ function TeamPage() {
   const captain = !!team && (auth.user?.discordId === team.captainDiscordId || auth.user?.id === team.captainDiscordId);
   const members = teamQuery.data?.members ?? [];
   return <>
-    <div className="page-heading"><div><div className="eyebrow">Le collectif avant tout</div><h1>Mon équipe<span style={{ color: '#d83259' }}>.</span></h1><p>Rejoins une équipe grâce à son code capitaine ou veille sur ton roster. Un membre ne peut représenter qu’une équipe à la fois.</p></div></div>
+    <div className="page-heading"><div><div className="eyebrow">Le collectif avant tout</div><h1>Mon équipe<span style={{ color: '#ec4899' }}>.</span></h1><p>Rejoins une équipe grâce à son code capitaine ou veille sur ton roster. Un membre ne peut représenter qu’une équipe à la fois.</p></div></div>
     {auth.loading ? <div className="skeleton" style={{ height: 80, marginBottom: 18 }} /> : auth.user ? (
       <div className="member-banner" data-testid="status-signed-in"><div><div className="eyebrow" style={{ color: '#f28da2' }}>Discord connecté</div><h2>Salut {auth.user.global_name || auth.user.displayName || auth.user.username || 'membre'}.</h2><p>Ton compte Discord est lié à DreamTeam Misaki.</p></div><div className="team-stat"><b><Check size={23} style={{ color: '#84d0a7' }} /></b><span>Compte vérifié</span></div></div>
     ) : <div className="member-banner" data-testid="status-signed-out"><div><div className="eyebrow" style={{ color: '#f28da2' }}>Une place t’attend</div><h2>Connecte ton Discord.</h2><p>La connexion est nécessaire pour rejoindre une équipe et apparaître dans le classement.</p></div><a className="btn btn-primary" href="/api/auth/discord/login" data-testid="button-discord-login"><LogIn size={15} /> Se connecter</a></div>}
@@ -272,8 +288,8 @@ function TeamPage() {
       <>
         <section className="panel section-card">
           <div className="section-title-row"><div><div className="eyebrow">Ton équipe</div><h2 style={{ marginTop: 6 }}>{team.name}</h2></div><span className="role-badge">{captain ? 'CAPITAINE' : 'MEMBRE'}</span></div>
-          {captain ? <form className="form-row" onSubmit={submitRename}><input className="text-input" aria-label="Nouveau nom d’équipe" data-testid="input-team-name" minLength={2} maxLength={32} required value={teamName} onChange={(e) => setTeamName(e.target.value)} /><button className="btn btn-dark" disabled={rename.isPending || teamName.trim().length < 2} data-testid="button-rename-team">{rename.isPending ? <LoaderCircle size={15} className="spin" /> : null} Renommer</button></form> : <p className="hint">Le capitaine de ton équipe : {members.find((m) => m.discordId === team.captainDiscordId)?.username || 'capitaine'}.</p>}
-          {captain && <div className="notice"><Shield size={15} /><span>Code d’invitation du capitaine : <strong style={{ fontFamily: 'var(--app-font-mono)' }} data-testid="text-join-code">{team.joinCode}</strong> — partage-le avec les membres qui souhaitent te rejoindre.</span></div>}
+          {!captain && <p className="hint">Le capitaine de ton équipe : {members.find((m) => m.discordId === team.captainDiscordId)?.username || 'capitaine'}.</p>}
+          {captain && <div className="notice"><Shield size={15} /><span>Code d’invitation du capitaine : <strong style={{ fontFamily: 'var(--app-font-mono)' }} data-testid="text-join-code">{team.joinCode ?? ''}</strong> — partage-le avec les membres qui souhaitent te rejoindre.</span></div>}
           {feedback && <div className={`${feedback.kind}-note`} role={feedback.kind === 'error' ? 'alert' : 'status'}>{feedback.text}</div>}
         </section>
         <section className="panel section-card">
@@ -286,21 +302,21 @@ function TeamPage() {
       </>
     ) : (
       <section className="panel section-card">
-        <div className="section-title-row"><div><div className="eyebrow">Trouve ta team</div><h2 style={{ marginTop: 6 }}>Rejoins par code capitaine</h2></div><Users size={20} color="#d83259" /></div>
+        <div className="section-title-row"><div><div className="eyebrow">Trouve ta team</div><h2 style={{ marginTop: 6 }}>Rejoins par code capitaine</h2></div><Users size={20} color="#ec4899" /></div>
         <p className="hint" style={{ margin: '-8px 0 18px' }}>Un seul code suffit. Tu ne peux être inscrit que dans une équipe à la fois.</p>
         {auth.user ? <form className="form-row" onSubmit={submitJoin}><input className="text-input" aria-label="Code d’invitation" data-testid="input-join-code" placeholder="Ex. MISAKI-24" minLength={4} maxLength={32} required value={code} onChange={(e) => setCode(e.target.value)} /><button className="btn btn-primary" disabled={join.isPending || code.trim().length < 4} data-testid="button-join-team">{join.isPending ? <LoaderCircle size={15} /> : <ChevronRight size={15} />} Rejoindre</button></form> : <a className="btn btn-primary" href="/api/auth/discord/login" data-testid="button-team-login"><LogIn size={15} /> Se connecter avec Discord</a>}
         {feedback && <div className={`${feedback.kind}-note`} role={feedback.kind === 'error' ? 'alert' : 'status'}>{feedback.text}</div>}
         <div className="notice"><Headphones size={15} /><span>Ta présence vocale est suivie par le bot Discord, mais aucune conversation n’est enregistrée.</span></div>
       </section>
     )}
-    <div className="footer-note"><span>UNE ÉQUIPE À LA FOIS · UNE COURSE CHAQUE SEMAINE</span><span>Le meilleur vocal, c’est le vocal partagé.</span></div>
   </>;
 }
 
 function AdminPage() {
   const client = useQueryClient();
-  const auth = useCurrentUser();
+  const auth = useAuth();
   const isAdminPlus = auth.user?.role === 'ADMIN_PLUS';
+  const isStaff = isAdminPlus || auth.user?.role === 'ADMIN';
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [memberRoleFilter, setMemberRoleFilter] = useState('');
@@ -315,9 +331,9 @@ function AdminPage() {
     ...(debouncedSearch ? { search: debouncedSearch } : {}),
     ...(memberRoleFilter ? { role: memberRoleFilter as SiteRole } : {}),
   }), [debouncedSearch, memberRoleFilter]);
-  const membersQuery = useListAdminMembers(memberParams, { query: { queryKey: getListAdminMembersQueryKey(memberParams), enabled: isAdminPlus } });
-  const teamsQuery = useListAdminTeams({ query: { queryKey: getListAdminTeamsQueryKey(), enabled: isAdminPlus } });
-  const challengesQuery = useListAdminChallenges({ query: { queryKey: getListAdminChallengesQueryKey(), enabled: isAdminPlus } });
+  const membersQuery = useListAdminMembers(memberParams, { query: { queryKey: getListAdminMembersQueryKey(memberParams), enabled: isStaff } });
+  const teamsQuery = useListAdminTeams({ query: { queryKey: getListAdminTeamsQueryKey(), enabled: isStaff } });
+  const challengesQuery = useListAdminChallenges({ query: { queryKey: getListAdminChallengesQueryKey(), enabled: isStaff } });
   const setRole = useUpdateMemberRole();
   const renameTeam = useUpdateAdminTeam();
   const archiveTeam = useArchiveAdminTeam();
@@ -335,7 +351,7 @@ function AdminPage() {
     void client.invalidateQueries({ queryKey: getGetDreamTeamDashboardQueryKey() });
   };
   const setMemberRole = (member: Member, role: SiteRole) => setRole.mutate({ discordId: member.discordId, data: { role } }, { onSuccess: () => { setFeedback({ text: `Rôle de ${member.username} mis à jour.`, kind: 'success' }); refreshMembers(); refreshTeams(); }, onError: () => setFeedback({ text: 'Impossible de modifier ce rôle.', kind: 'error' }) });
-  const saveTeamName = (teamId: string, name: string) => renameTeam.mutate({ teamId, data: { name: name.trim() } }, { onSuccess: () => { setFeedback({ text: 'Équipe renommée.', kind: 'success' }); refreshTeams(); }, onError: () => setFeedback({ text: 'Impossible de renommer cette équipe.', kind: 'error' }) });
+  const saveTeam = (teamId: string, name: string, joinCode?: string) => renameTeam.mutate({ teamId, data: joinCode ? { name: name.trim(), joinCode: joinCode.trim() } : { name: name.trim() } }, { onSuccess: () => { setFeedback({ text: joinCode ? 'Code d’équipe mis à jour.' : 'Équipe renommée.', kind: 'success' }); refreshTeams(); }, onError: () => setFeedback({ text: 'Impossible de modifier cette équipe. Le code est peut-être déjà utilisé.', kind: 'error' }) });
   const archive = (team: TeamProgress) => {
     if (!window.confirm(`Archiver l’équipe « ${team.name} » ? Son historique sera conservé.`)) return;
     archiveTeam.mutate({ teamId: team.id }, { onSuccess: () => { setFeedback({ text: `${team.name} a été archivée.`, kind: 'success' }); refreshTeams(); }, onError: () => setFeedback({ text: 'Impossible d’archiver cette équipe.', kind: 'error' }) });
@@ -364,11 +380,11 @@ function AdminPage() {
   const teams = teamsQuery.data ?? [];
   const challenges = challengesQuery.data ?? [];
   return <>
-    <div className="page-heading"><div><div className="eyebrow">Les coulisses de la compétition</div><h1>Gestion<span style={{ color: '#d83259' }}>.</span></h1><p>Les membres, les équipes et les prochaines semaines de course — tout au même endroit pour l’équipe Misaki.</p></div><span className="role-badge ADMIN_PLUS"><Shield size={12} style={{ verticalAlign: 'middle', marginRight: 4 }} /> {isAdminPlus ? 'ADMIN+' : 'ESPACE SÉCURISÉ'}</span></div>
+    <div className="page-heading"><div><div className="eyebrow">Les coulisses de la compétition</div><h1>Gestion<span style={{ color: '#ec4899' }}>.</span></h1><p>Les membres, les équipes et les prochaines semaines de course — tout au même endroit pour l’équipe Misaki.</p></div><span className="role-badge ADMIN_PLUS"><Shield size={12} style={{ verticalAlign: 'middle', marginRight: 4 }} /> {isAdminPlus ? 'ADMIN+' : 'ADMIN'}</span></div>
     {auth.loading ? <div className="panel section-card"><LoadingRows amount={3} /></div> : !auth.user ? (
-      <div className="member-banner"><div><div className="eyebrow" style={{ color: '#f28da2' }}>Accès réservé</div><h2>Connecte ton Discord.</h2><p>Le panneau de gestion est réservé aux Admin+.</p></div><a className="btn btn-primary" href="/api/auth/discord/login"><LogIn size={15} /> Se connecter</a></div>
-    ) : !isAdminPlus ? (
-      <div className="panel section-card" role="status"><div className="empty-symbol"><Shield size={17} /></div><strong>Tu n’as pas accès à la gestion.</strong><p className="hint">Un Admin+ peut attribuer ce rôle depuis le panneau de gestion.</p></div>
+      <div className="member-banner"><div><div className="eyebrow" style={{ color: '#f28da2' }}>Accès réservé</div><h2>Connecte ton Discord.</h2><p>Le panneau de gestion est réservé aux Admin et Admin+.</p></div><a className="btn btn-primary" href="/api/auth/discord/login"><LogIn size={15} /> Se connecter</a></div>
+    ) : !isStaff ? (
+      <div className="panel section-card" role="status"><div className="empty-symbol"><Shield size={17} /></div><strong>Tu n’as pas accès à la gestion.</strong><p className="hint">Cet espace est réservé aux rôles Admin et Admin+.</p></div>
     ) : <>
     {feedback && <div className={`${feedback.kind}-note`} role={feedback.kind === 'error' ? 'alert' : 'status'} data-testid="admin-feedback">{feedback.text}</div>}
     <div className="admin-grid">
@@ -376,44 +392,53 @@ function AdminPage() {
         <div className="section-title-row"><div><div className="eyebrow">Comptes Discord liés</div><h2 style={{ marginTop: 6 }}>Membres inscrits</h2></div><span className="role-badge">{membersQuery.data?.total ?? '—'} total</span></div>
         <div className="toolbar" style={{ marginBottom: 15 }}>
           <div className="search-field"><Search size={15} /><input className="text-input" type="search" placeholder="Chercher un membre…" aria-label="Rechercher un membre" data-testid="input-member-search" value={search} onChange={(e) => setSearch(e.target.value)} /></div>
-          <select className="select-input" style={{ width: 145 }} aria-label="Filtrer par rôle" data-testid="select-role-filter" value={memberRoleFilter} onChange={(e) => setMemberRoleFilter(e.target.value)}><option value="">Tous les rôles</option><option value="MEMBER">Membre</option><option value="CAPTAIN">Capitaine</option><option value="ADMIN_PLUS">Admin+</option></select>
+          <select className="select-input" style={{ width: 145 }} aria-label="Filtrer par rôle" data-testid="select-role-filter" value={memberRoleFilter} onChange={(e) => setMemberRoleFilter(e.target.value)}><option value="">Tous les rôles</option><option value="MEMBER">Membre</option><option value="CAPTAIN">Capitaine</option><option value="ADMIN">Admin</option><option value="ADMIN_PLUS">Admin+</option></select>
         </div>
         {membersQuery.isLoading ? <LoadingRows amount={4} /> : membersQuery.isError ? <ErrorBox onRetry={() => void membersQuery.refetch()} /> : members.length ? <div className="table-wrap"><table className="data-table"><thead><tr><th>Membre</th><th>Équipe</th><th>Rôle</th></tr></thead><tbody>
-          {members.map((member) => <tr key={member.discordId} data-testid={`row-member-${member.discordId}`}><td><div style={{ display: 'flex', alignItems: 'center', gap: 9 }}><Avatar member={member} /><div><strong>{member.username}</strong><div className="member-detail">{member.voiceHours.toFixed(1)} h vocales</div></div></div></td><td>{member.teamName || <span className="member-detail">Sans équipe</span>}</td><td><select className="role-select" aria-label={`Rôle de ${member.username}`} data-testid={`select-role-${member.discordId}`} value={member.role} disabled={setRole.isPending} onChange={(e) => setMemberRole(member, e.target.value as SiteRole)}><option value="MEMBER">Membre</option><option value="CAPTAIN">Capitaine</option><option value="ADMIN_PLUS">Admin+</option></select></td></tr>)}
+          {members.map((member) => <tr key={member.discordId} data-testid={`row-member-${member.discordId}`}><td><div style={{ display: 'flex', alignItems: 'center', gap: 9 }}><Avatar member={member} /><div><strong>{member.username}</strong><div className="member-detail">{member.voiceHours.toFixed(1)} h vocales</div></div></div></td><td>{member.teamName || <span className="member-detail">Sans équipe</span>}</td><td>{isAdminPlus ? <select className="role-select" aria-label={`Rôle de ${member.username}`} data-testid={`select-role-${member.discordId}`} value={member.role} disabled={setRole.isPending} onChange={(e) => setMemberRole(member, e.target.value as SiteRole)}><option value="MEMBER">Membre</option><option value="CAPTAIN">Capitaine</option><option value="ADMIN">Admin</option><option value="ADMIN_PLUS">Admin+</option></select> : <span className={`role-badge ${member.role}`} data-testid={`text-role-${member.discordId}`}>{roleLabels[member.role] ?? member.role}</span>}</td></tr>)}
         </tbody></table></div> : <div className="empty-state" data-testid="empty-members"><div className="empty-symbol"><Search size={17} /></div><strong>Aucun membre trouvé</strong><p>Essaie un autre nom ou change le filtre.</p></div>}
       </section>
       <section className="panel section-card">
         <div className="section-title-row"><div><div className="eyebrow">Les escouades du moment</div><h2 style={{ marginTop: 6 }}>Équipes actives</h2></div><span className="role-badge">{teams.length} équipes</span></div>
-        {teamsQuery.isLoading ? <LoadingRows amount={3} /> : teamsQuery.isError ? <ErrorBox onRetry={() => void teamsQuery.refetch()} /> : teams.length ? teams.map((team) => <TeamAdminRow key={team.id} team={team} onRename={saveTeamName} onArchive={archive} onAdd={addToTeam} onRemove={removeFromTeam} />) : <div className="empty-state"><div className="empty-symbol"><Users size={17} /></div><strong>Pas encore d’équipe</strong><p>Les équipes apparaîtront ici après leur création par les capitaines.</p></div>}
+        {teamsQuery.isLoading ? <LoadingRows amount={3} /> : teamsQuery.isError ? <ErrorBox onRetry={() => void teamsQuery.refetch()} /> : teams.length ? teams.map((team) => <TeamAdminRow key={team.id} team={team} onSave={saveTeam} onArchive={archive} onAdd={addToTeam} onRemove={removeFromTeam} />) : <div className="empty-state"><div className="empty-symbol"><Users size={17} /></div><strong>Pas encore d’équipe</strong><p>Les équipes apparaîtront ici après leur création par les capitaines.</p></div>}
       </section>
       <section className="panel section-card" style={{ gridColumn: '1 / -1' }}>
         <div className="section-title-row"><div><div className="eyebrow">La suite de la saison</div><h2 style={{ marginTop: 6 }}>Défis hebdomadaires</h2></div><span className="role-badge">{challenges.length} semaines</span></div>
-        <form className="create-form" onSubmit={submitChallenge}>
+        {isAdminPlus ? <form className="create-form" onSubmit={submitChallenge}>
           <input className="text-input" aria-label="Titre du défi" data-testid="input-challenge-title" placeholder="Titre du prochain défi" minLength={3} maxLength={80} required value={challengeTitle} onChange={(e) => setChallengeTitle(e.target.value)} />
           <input className="text-input" aria-label="Récompense du défi" data-testid="input-challenge-reward" placeholder="Récompense à gagner" minLength={2} maxLength={120} required value={challengeReward} onChange={(e) => setChallengeReward(e.target.value)} />
           <button className="btn btn-primary" disabled={createChallenge.isPending || challengeTitle.trim().length < 3 || challengeReward.trim().length < 2} data-testid="button-create-challenge">{createChallenge.isPending ? <LoaderCircle size={15} /> : <Sparkles size={15} />} Lancer 7 jours</button>
-        </form>
-        <div className="notice"><Clock3 size={15} /><span>Chaque défi dure sept jours. Les résultats précédents restent visibles après le lancement du suivant.</span></div>
-        {challengesQuery.isLoading ? <div style={{ marginTop: 16 }}><LoadingRows amount={2} /></div> : challengesQuery.isError ? <div style={{ marginTop: 16 }}><ErrorBox onRetry={() => void challengesQuery.refetch()} /></div> : challenges.length ? <div style={{ marginTop: 16 }} data-testid="challenge-history">{challenges.map((challenge) => <div className="challenge-item" key={challenge.id} data-testid={`challenge-${challenge.id}`}><div><h3>{challenge.title}</h3><p>Récompense : {challenge.reward} · {formatDate(challenge.startsAt)} — {formatDate(challenge.endsAt)}{challenge.winningTeamName ? ` · Vainqueur : ${challenge.winningTeamName}` : ''}{challenge.winnerUsername ? ` · Tirage : ${challenge.winnerUsername}` : ''}</p></div><span className={`challenge-status ${challenge.status === 'COMPLETED' ? 'completed' : ''}`}>{challenge.status === 'ACTIVE' ? 'EN COURS' : challenge.drawStatus === 'DRAWN' ? 'TERMINÉ · TIRÉ' : challenge.drawStatus === 'NO_ELIGIBLE_MEMBERS' ? 'TERMINÉ · SANS ÉLIGIBLE' : 'TERMINÉ · EN ATTENTE'}</span></div>)}</div> : <div className="empty-state" style={{ marginTop: 16 }} data-testid="empty-challenges"><div className="empty-symbol"><Award size={17} /></div><strong>Aucun défi pour l’instant</strong><p>Le premier défi pourra être créé depuis ce formulaire.</p></div>}
+        </form> : null}
+        <div className="notice"><Clock3 size={15} /><span>Chaque défi dure sept jours. Les résultats précédents restent visibles après le lancement du suivant.{isAdminPlus ? '' : ' La création d’un défi est réservée aux Admin+.'}</span></div>
+        {challengesQuery.isLoading ? <div style={{ marginTop: 16 }}><LoadingRows amount={2} /></div> : challengesQuery.isError ? <div style={{ marginTop: 16 }}><ErrorBox onRetry={() => void challengesQuery.refetch()} /></div> : challenges.length ? <div style={{ marginTop: 16 }} data-testid="challenge-history">{challenges.map((challenge) => <div className="challenge-item" key={challenge.id} data-testid={`challenge-${challenge.id}`}><div><h3>{challenge.title}</h3><p>Récompense : {challenge.reward} · {formatDate(challenge.startsAt)} — {formatDate(challenge.endsAt)}{challenge.winningTeamName ? ` · Vainqueur : ${challenge.winningTeamName}` : ''}{challenge.winnerUsername ? ` · Tirage : ${challenge.winnerUsername}` : ''}</p></div><span className={`challenge-status ${challenge.status === 'COMPLETED' ? 'completed' : ''}`}>{challenge.status === 'ACTIVE' ? 'EN COURS' : challenge.drawStatus === 'DRAWN' ? 'TERMINÉ · TIRÉ' : challenge.drawStatus === 'NO_ELIGIBLE_MEMBERS' ? 'TERMINÉ · SANS ÉLIGIBLE' : 'TERMINÉ · EN ATTENTE'}</span></div>)}</div> : <div className="empty-state" style={{ marginTop: 16 }} data-testid="empty-challenges"><div className="empty-symbol"><Award size={17} /></div><strong>Aucun défi pour l’instant</strong><p>Le premier défi sera créé par un Admin+.</p></div>}
       </section>
     </div>
-    <div className="footer-note"><span>GESTION RÉSERVÉE AUX MEMBRES AUTORISÉS</span><span>Les changements sont appliqués côté serveur.</span></div>
     </>}
   </>;
 }
 
-function TeamAdminRow({ team, onRename, onArchive, onAdd, onRemove }: {
+function TeamAdminRow({ team, onSave, onArchive, onAdd, onRemove }: {
   team: TeamProgress;
-  onRename: (id: string, name: string) => void;
+  onSave: (id: string, name: string, joinCode?: string) => void;
   onArchive: (team: TeamProgress) => void;
   onAdd: (event: React.FormEvent<HTMLFormElement>, teamId: string, input: HTMLInputElement) => void;
   onRemove: (team: TeamProgress, discordId: string) => void;
 }) {
   const [name, setName] = useState(team.name);
+  const [joinCode, setJoinCode] = useState('');
+  useEffect(() => { setName(team.name); }, [team.name]);
   return <div className="team-admin-row" data-testid={`admin-team-${team.id}`}>
-    <div className="team-admin-top"><div style={{ minWidth: 0 }}><strong>{team.name}</strong><div className="team-admin-meta">Capitaine : {team.captainName} · {team.memberCount} membres · {team.voiceHours.toFixed(1)} h · {team.activeMembers} actifs</div></div>
-      <div className="team-admin-actions"><button className="btn btn-quiet btn-small" onClick={() => { const next = window.prompt('Nouveau nom de l’équipe', name); if (next?.trim() && next.trim() !== name) { setName(next.trim()); onRename(team.id, next); } }} data-testid={`button-rename-admin-team-${team.id}`}>Renommer</button><button className="btn btn-danger btn-small" onClick={() => onArchive(team)} data-testid={`button-archive-team-${team.id}`}>Archiver</button></div>
+    <div className="team-admin-top"><div style={{ minWidth: 0 }}><strong>{team.name}</strong><div className="team-admin-meta">Capitaine : {team.captainName} · {team.memberCount} membres · {team.voiceHours.toFixed(1)} h · {team.activeMembers} actifs</div>{team.joinCode && <div className="team-admin-meta">Code actuel : <strong style={{ fontFamily: 'var(--app-font-mono)' }} data-testid={`text-admin-join-code-${team.id}`}>{team.joinCode}</strong></div>}</div>
+      <div className="team-admin-actions"><button className="btn btn-danger btn-small" onClick={() => onArchive(team)} data-testid={`button-archive-team-${team.id}`}>Archiver</button></div>
     </div>
+    <form className="admin-team-form" onSubmit={(event) => { event.preventDefault(); if (name.trim().length >= 2 && name.trim() !== team.name) onSave(team.id, name); }}>
+      <input className="text-input" aria-label={`Nom de ${team.name}`} data-testid={`input-team-name-${team.id}`} minLength={2} maxLength={32} required value={name} onChange={(e) => setName(e.target.value)} />
+      <button className="btn btn-quiet btn-small" disabled={name.trim().length < 2 || name.trim() === team.name} data-testid={`button-rename-admin-team-${team.id}`}>Renommer</button>
+    </form>
+    <form className="admin-team-form" onSubmit={(event) => { event.preventDefault(); if (joinCode.trim().length >= 4) { onSave(team.id, team.name, joinCode); setJoinCode(''); } }}>
+      <input className="text-input" aria-label={`Nouveau code de ${team.name}`} data-testid={`input-join-code-${team.id}`} placeholder="Nouveau code d’équipe" minLength={4} maxLength={32} value={joinCode} pattern="[A-Za-z0-9-]{4,32}" onChange={(e) => setJoinCode(e.target.value.toUpperCase())} />
+      <button className="btn btn-quiet btn-small" disabled={joinCode.trim().length < 4} data-testid={`button-save-join-code-${team.id}`}>Changer le code</button>
+    </form>
     <form className="admin-team-form" onSubmit={(event) => {
       event.preventDefault();
       const input = event.currentTarget.elements.namedItem('discordId') as HTMLInputElement | null;
@@ -443,7 +468,7 @@ function NotFound() {
 
 function Router() {
   const [location] = useLocation();
-  return <ErrorBoundary resetKey={location}><Shell><Switch><Route path="/" component={HomePage} /><Route path="/team" component={TeamPage} /><Route path="/admin" component={AdminPage} /><Route component={NotFound} /></Switch></Shell></ErrorBoundary>;
+  return <ErrorBoundary resetKey={location}><AuthProvider><Shell><Switch><Route path="/" component={HomePage} /><Route path="/team" component={TeamPage} /><Route path="/admin" component={AdminPage} /><Route path="/captain" component={CaptainPage} /><Route component={NotFound} /></Switch></Shell></AuthProvider></ErrorBoundary>;
 }
 
 function App() {

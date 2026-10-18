@@ -12,5 +12,6 @@ export type SiteRole = typeof SiteRole[keyof typeof SiteRole];
 export const SiteRole = {
   MEMBER: 'MEMBER',
   CAPTAIN: 'CAPTAIN',
+  ADMIN: 'ADMIN',
   ADMIN_PLUS: 'ADMIN_PLUS',
 } as const;
