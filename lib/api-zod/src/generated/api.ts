@@ -8,6 +8,117 @@
 import * as zod from 'zod';
 
 
+export const getCaptainApplicationResponseAnswersDiscordUsernameMax = 80;
+
+export const getCaptainApplicationResponseAnswersAgeMin = 13;
+export const getCaptainApplicationResponseAnswersAgeMax = 100;
+
+export const getCaptainApplicationResponseAnswersAvailabilityMax = 1000;
+
+export const getCaptainApplicationResponseAnswersMotivationMax = 1000;
+
+export const getCaptainApplicationResponseAnswersStaffManagementMax = 1000;
+
+export const getCaptainApplicationResponseAnswersExperienceMax = 1000;
+
+export const getCaptainApplicationResponseAnswersVoiceHoursMin = 0;
+export const getCaptainApplicationResponseAnswersVoiceHoursMax = 100000;
+
+export const getCaptainApplicationResponseAnswersMisakiRolesMax = 1000;
+
+export const getCaptainApplicationResponseAnswersDiscordIdRegExp = new RegExp('^[0-9]{17,20}$');
+
+
+export const GetCaptainApplicationResponse = zod.object({
+  "status": zod.enum(['NONE', 'PENDING', 'SENT', 'FAILED']),
+  "inviteUrl": zod.string(),
+  "channelUrl": zod.string().nullable(),
+  "answers": zod.object({
+  "discordUsername": zod.string().min(1).max(getCaptainApplicationResponseAnswersDiscordUsernameMax),
+  "age": zod.number().int().min(getCaptainApplicationResponseAnswersAgeMin).max(getCaptainApplicationResponseAnswersAgeMax),
+  "availability": zod.string().min(1).max(getCaptainApplicationResponseAnswersAvailabilityMax),
+  "motivation": zod.string().min(1).max(getCaptainApplicationResponseAnswersMotivationMax),
+  "staffManagement": zod.string().min(1).max(getCaptainApplicationResponseAnswersStaffManagementMax),
+  "experience": zod.string().min(1).max(getCaptainApplicationResponseAnswersExperienceMax),
+  "voiceHours": zod.number().min(getCaptainApplicationResponseAnswersVoiceHoursMin).max(getCaptainApplicationResponseAnswersVoiceHoursMax),
+  "misakiRoles": zod.string().min(1).max(getCaptainApplicationResponseAnswersMisakiRolesMax),
+  "discordId": zod.string().regex(getCaptainApplicationResponseAnswersDiscordIdRegExp)
+}).optional()
+})
+
+
+export const submitCaptainApplicationBodyDiscordUsernameMax = 80;
+
+export const submitCaptainApplicationBodyAgeMin = 13;
+export const submitCaptainApplicationBodyAgeMax = 100;
+
+export const submitCaptainApplicationBodyAvailabilityMax = 1000;
+
+export const submitCaptainApplicationBodyMotivationMax = 1000;
+
+export const submitCaptainApplicationBodyStaffManagementMax = 1000;
+
+export const submitCaptainApplicationBodyExperienceMax = 1000;
+
+export const submitCaptainApplicationBodyVoiceHoursMin = 0;
+export const submitCaptainApplicationBodyVoiceHoursMax = 100000;
+
+export const submitCaptainApplicationBodyMisakiRolesMax = 1000;
+
+export const submitCaptainApplicationBodyDiscordIdRegExp = new RegExp('^[0-9]{17,20}$');
+
+
+export const SubmitCaptainApplicationBody = zod.object({
+  "discordUsername": zod.string().min(1).max(submitCaptainApplicationBodyDiscordUsernameMax),
+  "age": zod.number().int().min(submitCaptainApplicationBodyAgeMin).max(submitCaptainApplicationBodyAgeMax),
+  "availability": zod.string().min(1).max(submitCaptainApplicationBodyAvailabilityMax),
+  "motivation": zod.string().min(1).max(submitCaptainApplicationBodyMotivationMax),
+  "staffManagement": zod.string().min(1).max(submitCaptainApplicationBodyStaffManagementMax),
+  "experience": zod.string().min(1).max(submitCaptainApplicationBodyExperienceMax),
+  "voiceHours": zod.number().min(submitCaptainApplicationBodyVoiceHoursMin).max(submitCaptainApplicationBodyVoiceHoursMax),
+  "misakiRoles": zod.string().min(1).max(submitCaptainApplicationBodyMisakiRolesMax),
+  "discordId": zod.string().regex(submitCaptainApplicationBodyDiscordIdRegExp)
+})
+
+export const submitCaptainApplicationResponseAnswersDiscordUsernameMax = 80;
+
+export const submitCaptainApplicationResponseAnswersAgeMin = 13;
+export const submitCaptainApplicationResponseAnswersAgeMax = 100;
+
+export const submitCaptainApplicationResponseAnswersAvailabilityMax = 1000;
+
+export const submitCaptainApplicationResponseAnswersMotivationMax = 1000;
+
+export const submitCaptainApplicationResponseAnswersStaffManagementMax = 1000;
+
+export const submitCaptainApplicationResponseAnswersExperienceMax = 1000;
+
+export const submitCaptainApplicationResponseAnswersVoiceHoursMin = 0;
+export const submitCaptainApplicationResponseAnswersVoiceHoursMax = 100000;
+
+export const submitCaptainApplicationResponseAnswersMisakiRolesMax = 1000;
+
+export const submitCaptainApplicationResponseAnswersDiscordIdRegExp = new RegExp('^[0-9]{17,20}$');
+
+
+export const SubmitCaptainApplicationResponse = zod.object({
+  "status": zod.enum(['NONE', 'PENDING', 'SENT', 'FAILED']),
+  "inviteUrl": zod.string(),
+  "channelUrl": zod.string().nullable(),
+  "answers": zod.object({
+  "discordUsername": zod.string().min(1).max(submitCaptainApplicationResponseAnswersDiscordUsernameMax),
+  "age": zod.number().int().min(submitCaptainApplicationResponseAnswersAgeMin).max(submitCaptainApplicationResponseAnswersAgeMax),
+  "availability": zod.string().min(1).max(submitCaptainApplicationResponseAnswersAvailabilityMax),
+  "motivation": zod.string().min(1).max(submitCaptainApplicationResponseAnswersMotivationMax),
+  "staffManagement": zod.string().min(1).max(submitCaptainApplicationResponseAnswersStaffManagementMax),
+  "experience": zod.string().min(1).max(submitCaptainApplicationResponseAnswersExperienceMax),
+  "voiceHours": zod.number().min(submitCaptainApplicationResponseAnswersVoiceHoursMin).max(submitCaptainApplicationResponseAnswersVoiceHoursMax),
+  "misakiRoles": zod.string().min(1).max(submitCaptainApplicationResponseAnswersMisakiRolesMax),
+  "discordId": zod.string().regex(submitCaptainApplicationResponseAnswersDiscordIdRegExp)
+}).optional()
+})
+
+
 /**
  * Returns server health status
  * @summary Health check

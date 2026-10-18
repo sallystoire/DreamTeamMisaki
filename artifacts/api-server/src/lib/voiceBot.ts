@@ -3,20 +3,14 @@ import { Client, Events, GatewayIntentBits } from "discord.js";
 import { and, eq, isNull } from "drizzle-orm";
 import { db, dreamUsersTable, dreamVoiceSessionsTable } from "@workspace/db";
 import { logger } from "./logger";
+import { isPublicVoiceChannel } from "./publicVoice";
 
 let client: Client | undefined;
 
-function allowedChannelIds(): Set<string> {
-  return new Set(
-    (process.env.DISCORD_VOICE_CHANNEL_IDS ?? "")
-      .split(",")
-      .map((value) => value.trim())
-      .filter(Boolean),
-  );
-}
+export function getDiscordBot(): Client | undefined { return client; }
 
 export function isVoiceBotConnected(): boolean {
-  return Boolean(client?.isReady() && allowedChannelIds().size > 0);
+  return Boolean(client?.isReady() && client.guilds.cache.has(process.env.DISCORD_GUILD_ID ?? ""));
 }
 
 async function startTrackedSession(
@@ -114,22 +108,34 @@ export async function updateActiveVoiceTeam(
 export async function syncMemberVoiceState(discordId: string): Promise<void> {
   if (!client?.isReady()) return;
   const guildId = process.env.DISCORD_GUILD_ID;
-  const channels = allowedChannelIds();
-  if (!guildId || channels.size === 0) return;
+  if (!guildId) return;
 
   const guild = client.guilds.cache.get(guildId);
   const state = guild?.voiceStates.cache.get(discordId);
-  if (state?.channelId && channels.has(state.channelId) && !state.member?.user.bot) {
+  const [active] = await db.select().from(dreamVoiceSessionsTable).where(and(
+    eq(dreamVoiceSessionsTable.discordId, discordId), isNull(dreamVoiceSessionsTable.endedAt),
+  )).limit(1);
+  const eligible = state?.channelId && isPublicVoiceChannel(state.channel) && state.member && !state.member.user.bot;
+  if (active && (!eligible || active.channelId !== state?.channelId)) await stopTrackedSession(discordId);
+  if (eligible && state?.channelId) {
     await startTrackedSession(discordId, state.channelId);
   }
+}
+
+const memberQueues = new Map<string, Promise<void>>();
+function queueVoiceSync(discordId: string): Promise<void> {
+  const next = (memberQueues.get(discordId) ?? Promise.resolve()).catch(() => {}).then(() => syncMemberVoiceState(discordId));
+  memberQueues.set(discordId, next);
+  void next.finally(() => { if (memberQueues.get(discordId) === next) memberQueues.delete(discordId); }).catch(() => {});
+  return next;
 }
 
 export function startVoiceBot(): void {
   const token = process.env.DISCORD_BOT_TOKEN;
   const guildId = process.env.DISCORD_GUILD_ID;
-  if (!token || !guildId) {
+  if (!token) {
     logger.warn(
-      "Discord voice tracking is waiting for DISCORD_BOT_TOKEN and DISCORD_GUILD_ID",
+      "Discord bot is waiting for DISCORD_BOT_TOKEN",
     );
     return;
   }
@@ -140,10 +146,9 @@ export function startVoiceBot(): void {
 
   client.on(Events.ClientReady, async (readyClient) => {
     await stopAllTrackedSessions();
-    logger.info({ guildId: readyClient.guilds.cache.get(guildId)?.id ?? guildId }, "Discord voice bot connected");
-    const channels = allowedChannelIds();
-    if (channels.size === 0) {
-      logger.warn("Discord voice tracking is connected but no voice channels are configured");
+    logger.info({ guildId: guildId ?? null }, "Discord bot connected");
+    if (!guildId) {
+      logger.warn("Voice tracking is waiting for DISCORD_GUILD_ID; recruitment bot remains available");
       return;
     }
 
@@ -154,7 +159,7 @@ export function startVoiceBot(): void {
       for (const state of guild.voiceStates.cache.values()) {
         if (
           state.channelId &&
-          channels.has(state.channelId) &&
+          isPublicVoiceChannel(state.channel) &&
           state.member &&
           !state.member.user.bot
         ) {
@@ -170,28 +175,33 @@ export function startVoiceBot(): void {
   });
 
   client.on(Events.VoiceStateUpdate, (oldState, newState) => {
-    const channels = allowedChannelIds();
+    if (newState.guild.id !== guildId) return;
     const oldChannelId = oldState.channelId;
     const newChannelId = newState.channelId;
     if (oldChannelId === newChannelId) return;
 
-    void (async () => {
-      if (oldChannelId && channels.has(oldChannelId)) {
-        await stopTrackedSession(newState.id);
-      }
-      if (
-        newChannelId &&
-        channels.has(newChannelId) &&
-        !newState.member?.user.bot
-      ) {
-        await startTrackedSession(newState.id, newChannelId);
-      }
-    })().catch((error: unknown) => {
+    void queueVoiceSync(newState.id).catch((error: unknown) => {
       logger.error(
         { message: error instanceof Error ? error.message : "unknown error" },
         "Failed to update Discord voice activity",
       );
     });
+  });
+
+  const reconcilePermissions = () => {
+    const guild = client?.guilds.cache.get(guildId ?? "");
+    for (const state of guild?.voiceStates.cache.values() ?? []) {
+      void queueVoiceSync(state.id).catch((error: unknown) => logger.error({ err: error }, "Voice permission sync failed"));
+    }
+  };
+  client.on(Events.ChannelUpdate, (_old, channel) => {
+    if ("guild" in channel && channel.guild.id === guildId) reconcilePermissions();
+  });
+  client.on(Events.ChannelDelete, (channel) => {
+    if ("guild" in channel && channel.guild.id === guildId) reconcilePermissions();
+  });
+  client.on(Events.GuildRoleUpdate, (_old, role) => {
+    if (role.guild.id === guildId) reconcilePermissions();
   });
 
   client.on(Events.ShardDisconnect, () => {

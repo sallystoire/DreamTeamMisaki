@@ -5,6 +5,69 @@
  * DreamTeam Misaki API
  * OpenAPI spec version: 0.1.0
  */
+export interface CaptainApplicationInput {
+  /**
+     * @minLength 1
+     * @maxLength 80
+     */
+  discordUsername: string;
+  /**
+     * @minimum 13
+     * @maximum 100
+     */
+  age: number;
+  /**
+     * @minLength 1
+     * @maxLength 1000
+     */
+  availability: string;
+  /**
+     * @minLength 1
+     * @maxLength 1000
+     */
+  motivation: string;
+  /**
+     * @minLength 1
+     * @maxLength 1000
+     */
+  staffManagement: string;
+  /**
+     * @minLength 1
+     * @maxLength 1000
+     */
+  experience: string;
+  /**
+     * @minimum 0
+     * @maximum 100000
+     */
+  voiceHours: number;
+  /**
+     * @minLength 1
+     * @maxLength 1000
+     */
+  misakiRoles: string;
+  /** @pattern ^[0-9]{17,20}$ */
+  discordId: string;
+}
+
+export type CaptainApplicationStatusStatus = typeof CaptainApplicationStatusStatus[keyof typeof CaptainApplicationStatusStatus];
+
+
+export const CaptainApplicationStatusStatus = {
+  NONE: 'NONE',
+  PENDING: 'PENDING',
+  SENT: 'SENT',
+  FAILED: 'FAILED',
+} as const;
+
+export interface CaptainApplicationStatus {
+  status: CaptainApplicationStatusStatus;
+  inviteUrl: string;
+  /** @nullable */
+  channelUrl: string | null;
+  answers?: CaptainApplicationInput;
+}
+
 export interface HealthStatus {
   status: string;
 }

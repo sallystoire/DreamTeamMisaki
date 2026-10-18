@@ -315,3 +315,9 @@ option { background: #140c1e; color: #f1e9fb; }
   .brand-logo { height: 38px; }
   .nav-link.gold { font-size: 10px; padding: 9px 9px; }
 }
+.cap-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.cap-field{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:600;color:#d8cbe9}
+.cap-field.wide{grid-column:1/-1}
+.cap-area{height:auto;min-height:96px;padding:11px 13px;resize:vertical;line-height:1.5}
+.cap-field input[readonly]{opacity:.7}
+@media(max-width:580px){.cap-grid{grid-template-columns:1fr}}

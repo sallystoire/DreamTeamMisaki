@@ -4,6 +4,9 @@ import {
   useAddAdminTeamMember,
   useArchiveAdminTeam,
   useCreateAdminChallenge,
+  useGetCaptainApplication,
+  useSubmitCaptainApplication,
+  getGetCaptainApplicationQueryKey,
   useGetDreamTeamDashboard,
   useGetMyTeam,
   useJoinTeam,
@@ -20,7 +23,7 @@ import {
   getListAdminMembersQueryKey,
   getListAdminTeamsQueryKey,
 } from '@workspace/api-client-react';
-import type { Challenge, Member, SiteRole, TeamProgress } from '@workspace/api-client-react';
+import type { CaptainApplicationStatus, Challenge, Member, SiteRole, TeamProgress } from '@workspace/api-client-react';
 import {
   Award, Check, ChevronRight, Clock3, Crown, Headphones, LoaderCircle, LogIn,
   LogOut, Radio, RefreshCw, Search, Shield, Sparkles, Trophy, Users, X,
@@ -75,7 +78,6 @@ function useAuth(): AuthState {
   return value;
 }
 const roleLabels: Record<string, string> = { MEMBER: 'Équipier', CAPTAIN: 'Capitaine', ADMIN: 'Admin', ADMIN_PLUS: 'Admin+' };
-const recruitmentUrl = (import.meta.env.VITE_RECRUITMENT_INVITE_URL as string | undefined)?.trim() || '';
 
 function Shell({ children }: { children: ReactNode }) {
   const [path] = useLocation();
@@ -87,6 +89,7 @@ function Shell({ children }: { children: ReactNode }) {
   else if (role === 'ADMIN_PLUS') links.push({ href: '/admin', label: 'Admin+', testid: 'link-admin-plus' });
   else if (role === 'ADMIN') links.push({ href: '/admin', label: 'Gestion', testid: 'link-admin' });
   else links.push({ href: '/team', label: 'Gestion', testid: 'link-team' });
+  if (auth.user) links.push({ href: '/captain', label: 'Devenir Capitaine', gold: true, testid: 'link-captain' });
   return (
     <div className="app-shell">
       <header className="site-header">
@@ -117,18 +120,98 @@ function Shell({ children }: { children: ReactNode }) {
   );
 }
 
+const RECRUIT_INVITE = 'https://discord.gg/CNKn4X4jJ';
+type CaptainForm = { discordUsername: string; age: string; availability: string; motivation: string; staffManagement: string; experience: string; voiceHours: string; misakiRoles: string };
+const emptyCaptainForm: CaptainForm = { discordUsername: '', age: '', availability: '', motivation: '', staffManagement: '', experience: '', voiceHours: '', misakiRoles: '' };
+
 function CaptainPage() {
-  return <div className="captain-hero" data-testid="page-captain">
-    <div className="eyebrow" style={{ color: '#f5c75a' }}>Devenir Capitaine</div>
-    <h1>Mène ton équipe.</h1>
-    <p data-testid="text-captain-copy">Le poste de Capitaine est réservé aux gestions staffs de Misaki. Si tu as toi aussi envie de devenir Capitaine alors il faudra faire une candidature.</p>
-    {recruitmentUrl ? (
-      <a className="btn gold" href={recruitmentUrl} target="_blank" rel="noopener noreferrer" data-testid="link-recruitment">Rejoindre le serveur recrutement</a>
+  const auth = useAuth();
+  const qc = useQueryClient();
+  const appQuery = useGetCaptainApplication({ query: { queryKey: getGetCaptainApplicationQueryKey(), enabled: !!auth.user } });
+  const submit = useSubmitCaptainApplication();
+  const [form, setForm] = useState<CaptainForm>(emptyCaptainForm);
+  const [result, setResult] = useState<CaptainApplicationStatus | null>(null);
+  const [error, setError] = useState('');
+  const userId = auth.user?.discordId || auth.user?.id || '';
+  const userName = auth.user?.global_name || auth.user?.displayName || auth.user?.username || '';
+  useEffect(() => {
+    if (userName) setForm((f) => (f.discordUsername ? f : { ...f, discordUsername: userName }));
+  }, [userName]);
+  const [restoredAnswers, setRestoredAnswers] = useState(false);
+  useEffect(() => {
+    const saved = appQuery.data?.answers;
+    if (!saved || restoredAnswers) return;
+    setForm({
+      discordUsername: saved.discordUsername, age: String(saved.age),
+      availability: saved.availability, motivation: saved.motivation,
+      staffManagement: saved.staffManagement, experience: saved.experience,
+      voiceHours: String(saved.voiceHours), misakiRoles: saved.misakiRoles,
+    });
+    setRestoredAnswers(true);
+  }, [appQuery.data, restoredAnswers]);
+  const current = result ?? appQuery.data ?? null;
+  const status = current?.status ?? 'NONE';
+  const inviteUrl = current?.inviteUrl || RECRUIT_INVITE;
+  const justSent = !!result && result.status === 'SENT';
+  useEffect(() => {
+    if (!justSent) return;
+    const t = window.setTimeout(() => window.location.assign(inviteUrl), 2500);
+    return () => window.clearTimeout(t);
+  }, [justSent, inviteUrl]);
+  const set = (k: keyof CaptainForm) => (e: { target: { value: string } }) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError('');
+    submit.mutate({ data: {
+      discordUsername: form.discordUsername.trim(), age: Number(form.age), availability: form.availability.trim(),
+      motivation: form.motivation.trim(), staffManagement: form.staffManagement.trim(), experience: form.experience.trim(),
+      voiceHours: Number(form.voiceHours), misakiRoles: form.misakiRoles.trim(), discordId: userId,
+    } }, {
+      onSuccess: (r) => { setResult(r); qc.setQueryData(getGetCaptainApplicationQueryKey(), r); },
+      onError: (e) => setError(e instanceof Error && e.message ? e.message : 'L’envoi a échoué. Vérifie tes réponses et réessaie.'),
+    });
+  };
+  const channel = current?.channelUrl;
+  const showStatus = !!auth.user && !appQuery.isLoading && (status === 'SENT' || status === 'PENDING');
+  return <div data-testid="page-captain">
+    <div className="captain-hero" style={{ padding: '40px 28px', marginBottom: 20 }}>
+      <div className="eyebrow" style={{ color: '#f5c75a' }}>Devenir Capitaine</div>
+      <h1>Mène ton équipe.</h1>
+      <p data-testid="text-captain-copy" style={{ marginBottom: 0 }}>Le poste de Capitaine est réservé aux gestions staffs de Misaki. Si tu as toi aussi envie de devenir Capitaine alors il faudra faire une candidature.</p>
+    </div>
+    {auth.loading || (auth.user && appQuery.isLoading) ? <div className="panel section-card"><LoadingRows amount={3} /></div> : auth.user && appQuery.isError ? <ErrorBox onRetry={() => void appQuery.refetch()} text="Impossible de vérifier ta candidature. Réessaie dans un instant." /> : showStatus ? (
+      <section className="panel section-card" role="status" data-testid="status-captain-application">
+        <div className="eyebrow" style={{ color: '#f5c75a' }}>{status === 'SENT' ? 'Candidature enregistrée' : status === 'PENDING' ? 'Envoi en cours' : 'Envoi non abouti'}</div>
+        <h2 style={{ font: '700 24px var(--app-font-serif)', margin: '8px 0' }}>{status === 'SENT' ? 'Ta candidature est enregistrée.' : status === 'PENDING' ? 'Ta candidature est en cours d’envoi.' : 'Ta candidature n’a pas pu être transmise.'}</h2>
+        <p className="hint">{status === 'SENT' ? (justSent ? 'Redirection vers le serveur recrutement dans quelques secondes. Si rien ne se passe, utilise le bouton ci-dessous.' : 'Rejoins le serveur recrutement pour suivre la suite avec le staff.') : status === 'PENDING' ? 'Ta candidature est enregistrée mais pas encore transmise au staff. Recharge la page dans un instant pour vérifier ; elle n’a pas besoin d’être renvoyée.' : 'Ta candidature est enregistrée mais la transmission a échoué. Réessaie plus tard ou rejoins le serveur recrutement et préviens le staff.'}</p>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 16 }}>
+          <a className="btn gold" href={inviteUrl} target="_blank" rel="noopener noreferrer" data-testid="link-recruitment">Rejoindre le serveur recrutement</a>
+          {status === 'SENT' && channel && <a className="btn btn-quiet" href={channel} target="_blank" rel="noopener noreferrer" data-testid="link-private-channel">Ouvrir mon salon privé</a>}
+          {status !== 'SENT' && <button className="btn btn-quiet" onClick={() => void appQuery.refetch()} data-testid="button-refresh-application"><RefreshCw size={13} /> Actualiser le statut</button>}
+        </div>
+      </section>
     ) : (
-      <>
-        <button className="btn gold" disabled aria-disabled="true" data-testid="button-recruitment-pending">Rejoindre le serveur recrutement</button>
-        <p className="hint" style={{ marginTop: 16 }} data-testid="text-recruitment-pending">Le lien d’invitation du serveur recrutement n’est pas encore disponible. Il sera ajouté prochainement.</p>
-      </>
+      <form className="panel section-card" onSubmit={onSubmit} data-testid="form-captain">
+        {status === 'FAILED' && <div className="notice" role="alert">Ta candidature est conservée, mais n’a pas été transmise à Discord. Vérifie tes réponses et réessaie après 30 secondes.</div>}
+        <div className="section-title-row"><div><div className="eyebrow" style={{ color: '#f5c75a' }}>Candidature</div><h2 style={{ marginTop: 6 }}>Postuler comme Capitaine</h2></div></div>
+        {!auth.user && <div className="notice" style={{ marginTop: 0, marginBottom: 18, justifyContent: 'space-between', alignItems: 'center' }}><span>Connecte ton Discord pour envoyer ta candidature.</span><a className="btn btn-primary btn-small" href="/api/auth/discord/login" data-testid="link-captain-login"><LogIn size={13} /> Connexion Discord</a></div>}
+        <div className="cap-grid">
+          <label className="cap-field">Pseudo Discord<input className="text-input" required maxLength={80} value={form.discordUsername} onChange={set('discordUsername')} data-testid="input-pseudo" /></label>
+          <label className="cap-field">Identifiant Discord<input className="text-input" readOnly required value={userId} placeholder="Rempli après connexion" pattern="[0-9]{17,20}" data-testid="input-discord-id" /></label>
+          <label className="cap-field">Âge<input className="text-input" type="number" required min={13} max={100} step={1} value={form.age} onChange={set('age')} data-testid="input-age" /></label>
+          <label className="cap-field">Heures de vocal sur Misaki<input className="text-input" type="number" required min={0} max={100000} step="any" value={form.voiceHours} onChange={set('voiceHours')} data-testid="input-voice-hours" /></label>
+          <label className="cap-field wide">Disponibilité (semaine/week-end)<textarea className="text-input cap-area" required maxLength={1000} value={form.availability} onChange={set('availability')} data-testid="input-availability" /></label>
+          <label className="cap-field wide">Motivation<textarea className="text-input cap-area" required maxLength={1000} value={form.motivation} onChange={set('motivation')} data-testid="input-motivation" /></label>
+          <label className="cap-field wide">Expliquer ce qu’est la Gestion Staff<textarea className="text-input cap-area" required maxLength={1000} value={form.staffManagement} onChange={set('staffManagement')} data-testid="input-staff-management" /></label>
+          <label className="cap-field wide">Expérience sur Discord<textarea className="text-input cap-area" required maxLength={1000} value={form.experience} onChange={set('experience')} data-testid="input-experience" /></label>
+          <label className="cap-field wide">Rôles sur Misaki<textarea className="text-input cap-area" required maxLength={1000} value={form.misakiRoles} onChange={set('misakiRoles')} data-testid="input-misaki-roles" /></label>
+        </div>
+        <div className="notice"><Shield size={15} /><span>Tes réponses sont envoyées au staff du recrutement Misaki, et uniquement à lui.</span></div>
+        {error && <div className="error-note" role="alert" data-testid="text-captain-error">{error} Tes réponses sont conservées, tu peux réessayer.</div>}
+        <div style={{ marginTop: 18 }}>
+          <button className="btn gold" type="submit" disabled={!auth.user || !userId || submit.isPending} data-testid="button-submit-application">{submit.isPending ? <><LoaderCircle size={15} className="spin" /> Envoi en cours…</> : 'Envoyer ma candidature'}</button>
+        </div>
+      </form>
     )}
   </div>;
 }

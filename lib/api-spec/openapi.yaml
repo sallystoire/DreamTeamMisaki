@@ -15,6 +15,45 @@ tags:
   - name: admin
     description: Administrator actions
 paths:
+  /captain/application:
+    get:
+      operationId: getCaptainApplication
+      tags: [dreamteam]
+      responses:
+        "200":
+          description: Current application
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CaptainApplicationStatus"
+        "401":
+          description: Sign-in required
+    post:
+      operationId: submitCaptainApplication
+      tags: [dreamteam]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CaptainApplicationInput"
+      responses:
+        "200":
+          description: Delivered to recruitment server
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CaptainApplicationStatus"
+        "400":
+          description: Invalid application
+        "401":
+          description: Sign-in required
+        "409":
+          description: Submission in progress
+        "429":
+          description: Wait before retrying delivery
+        "503":
+          description: Discord delivery unavailable; retry later
   /healthz:
     get:
       operationId: healthCheck
@@ -340,6 +379,28 @@ components:
         type: string
         pattern: "^[0-9]{17,20}$"
   schemas:
+    CaptainApplicationInput:
+      type: object
+      required: [discordUsername, age, availability, motivation, staffManagement, experience, voiceHours, misakiRoles, discordId]
+      properties:
+        discordUsername: { type: string, minLength: 1, maxLength: 80 }
+        age: { type: integer, minimum: 13, maximum: 100 }
+        availability: { type: string, minLength: 1, maxLength: 1000 }
+        motivation: { type: string, minLength: 1, maxLength: 1000 }
+        staffManagement: { type: string, minLength: 1, maxLength: 1000 }
+        experience: { type: string, minLength: 1, maxLength: 1000 }
+        voiceHours: { type: number, minimum: 0, maximum: 100000 }
+        misakiRoles: { type: string, minLength: 1, maxLength: 1000 }
+        discordId: { type: string, pattern: '^[0-9]{17,20}$' }
+    CaptainApplicationStatus:
+      type: object
+      required: [status, inviteUrl, channelUrl]
+      properties:
+        status: { type: string, enum: [NONE, PENDING, SENT, FAILED] }
+        inviteUrl: { type: string }
+        channelUrl: { type: [string, "null"] }
+        answers:
+          $ref: "#/components/schemas/CaptainApplicationInput"
     HealthStatus:
       type: object
       properties:

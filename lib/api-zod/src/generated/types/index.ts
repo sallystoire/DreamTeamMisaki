@@ -7,6 +7,9 @@
  */
 
 export * from './adminAddTeamMemberInput';
+export * from './captainApplicationInput';
+export * from './captainApplicationStatus';
+export * from './captainApplicationStatusStatus';
 export * from './challenge';
 export * from './challengeInput';
 export * from './challengeStatus';

@@ -9,7 +9,7 @@ Site privé de compétition hebdomadaire : connexion Discord, équipes de capita
 - `pnpm run typecheck` — vérification TypeScript complète
 - `pnpm --filter @workspace/api-spec run codegen` — régénère les hooks React et schémas Zod depuis OpenAPI
 - `pnpm --filter @workspace/db run push` — applique le schéma PostgreSQL de développement
-- Configuration nécessaire : `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET` (secret), `DISCORD_GUILD_ID`, `DISCORD_BOT_TOKEN` (secret), `DISCORD_VOICE_CHANNEL_IDS`, `ADMIN_DISCORD_IDS`. `DISCORD_REDIRECT_URI` est optionnel en développement et requis si le domaine déployé ne correspond pas au domaine de développement.
+- Configuration nécessaire : `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET` (secret), `DISCORD_GUILD_ID`, `DISCORD_BOT_TOKEN` (secret). `ADMIN_DISCORD_IDS` peut étendre les Admin+ initiaux. `DISCORD_REDIRECT_URI` est optionnel en développement et requis en production.
 
 ## Stack
 
@@ -36,7 +36,7 @@ Site privé de compétition hebdomadaire : connexion Discord, équipes de capita
 - Discord ID est l’identifiant unique d’un compte. Les jetons OAuth ne sont pas conservés; la base ne stocke qu’un hash du cookie de session.
 - Les permissions sont contrôlées par l’API, pas seulement par les pages React. Les Admin+ initiaux sont désignés par `ADMIN_DISCORD_IDS`.
 - Le site n’importe pas les 200 000 membres du serveur : seuls les membres qui se connectent sont inscrits au roster.
-- Le bot comptabilise uniquement la durée en vocal dans les salons explicitement configurés; aucun audio n’est enregistré.
+- Le bot comptabilise les membres en équipe dans les salons vocaux publics détectés automatiquement : `@everyone` doit pouvoir voir et rejoindre le salon; AFK et conférences exclus. Aucun audio n’est enregistré.
 - Le bot suit uniquement les comptes inscrits qui appartiennent à une équipe. Le serveur et les salons sont configurés explicitement par leurs IDs Discord.
 - Les capitaines gèrent leur roster, mais seuls Admin et Admin+ modifient le nom et le code d’équipe. Les attributions de rôle et le lancement des défis restent réservés aux Admin+.
 - La clôture d’un défi et le tirage pondéré sont exécutés côté serveur; le capitaine éligible possède deux tickets.
@@ -52,7 +52,9 @@ Pas de préférence générale à noter pour le moment.
 ## Gotchas
 
 - Ajouter l’URL de retour OAuth du site dans le portail développeur Discord; définir `DISCORD_REDIRECT_URI` pour le domaine de production.
-- `DISCORD_VOICE_CHANNEL_IDS` accepte une liste d’identifiants de salons autorisés, séparés par des virgules.
+- Ne pas réintroduire de liste de salons autorisés : le propriétaire demande une détection automatique des salons publics.
+- Les candidatures Capitaine sont envoyées au serveur recrutement `https://discord.gg/CNKn4X4jJ`, dans un salon privé au pseudo du candidat. Le compte Discord connecté fait foi pour l’identité; ne pas accepter un autre identifiant saisi.
+- Garder les salons de candidature privés : les réponses contiennent notamment l’âge et les disponibilités. Les rôles du site ne donnent pas de droits Discord; configurer les rôles recruteurs séparément si nécessaire.
 - Après une modification de `lib/api-spec/openapi.yaml`, lancer le codegen avant de vérifier les applications consommatrices.
 - Après une modification du schéma Drizzle, lancer `pnpm --filter @workspace/db run push` en développement.
 - L’interface utilise Outfit et la direction sombre rose/violette fournie par l’utilisateur. Le logo remplace le nom dans l’en-tête.

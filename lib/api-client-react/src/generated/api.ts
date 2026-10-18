@@ -21,6 +21,8 @@ import type {
 
 import type {
   AdminAddTeamMemberInput,
+  CaptainApplicationInput,
+  CaptainApplicationStatus,
   Challenge,
   ChallengeInput,
   DashboardResponse,
@@ -62,6 +64,159 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getGetCaptainApplicationUrl = () => {
+
+
+
+
+  return `/api/captain/application`
+}
+
+export const getCaptainApplication = async ( options?: Parameters<typeof customFetch>[1]): Promise<CaptainApplicationStatus> => {
+
+  return customFetch<CaptainApplicationStatus>(getGetCaptainApplicationUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetCaptainApplicationQueryKey = () => {
+    return [
+    `/api/captain/application`
+    ] as const;
+    }
+
+
+export const getGetCaptainApplicationQueryOptions = <TData = Awaited<ReturnType<typeof getCaptainApplication>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCaptainApplication>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCaptainApplicationQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCaptainApplication>>> = ({ signal }) => getCaptainApplication({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCaptainApplication>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetCaptainApplicationQueryResult = NonNullable<Awaited<ReturnType<typeof getCaptainApplication>>>
+export type GetCaptainApplicationQueryError = ErrorType<void>
+
+
+
+export function useGetCaptainApplication<TData = Awaited<ReturnType<typeof getCaptainApplication>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCaptainApplication>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetCaptainApplicationQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSubmitCaptainApplicationUrl = () => {
+
+
+
+
+  return `/api/captain/application`
+}
+
+export const submitCaptainApplication = async (captainApplicationInput: CaptainApplicationInput, options?: Parameters<typeof customFetch>[1]): Promise<CaptainApplicationStatus> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<CaptainApplicationStatus>(getSubmitCaptainApplicationUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(captainApplicationInput)
+  }
+);}
+
+
+
+
+
+export const getSubmitCaptainApplicationMutationKey = () => ['submitCaptainApplication'] as const;
+
+export const getSubmitCaptainApplicationMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitCaptainApplication>>, TError,SubmitCaptainApplicationMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof submitCaptainApplication>>, TError,SubmitCaptainApplicationMutationVariables, TContext> => {
+
+const mutationKey = getSubmitCaptainApplicationMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof submitCaptainApplication>>, SubmitCaptainApplicationMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  submitCaptainApplication(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SubmitCaptainApplicationMutationResult = NonNullable<Awaited<ReturnType<typeof submitCaptainApplication>>>
+    export type SubmitCaptainApplicationMutationBody = BodyType<CaptainApplicationInput>
+    export type SubmitCaptainApplicationMutationError = ErrorType<void>
+    export type SubmitCaptainApplicationMutationVariables = {data: BodyType<CaptainApplicationInput>}
+
+    export const useSubmitCaptainApplication = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitCaptainApplication>>, TError,SubmitCaptainApplicationMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof submitCaptainApplication>>,
+        TError,
+        SubmitCaptainApplicationMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSubmitCaptainApplicationMutationOptions(options));
+    }
 
 export const getHealthCheckUrl = () => {
 
