@@ -1,0 +1,100 @@
+C'est une excellente approche ! L'utilisation de **Discord OAuth2** (la connexion via Discord) évite d'avoir à gérer des mots de passe ou des créations de comptes classiques. Discord devient l'unique moyen d'identification.
+
+Voici le fonctionnement détaillé du système d'accès, de la gestion des rôles et de la prévention des doublons.
+
+---
+
+## 🔑 1. Authentification & Connexion (OAuth2 Discord)
+
+1. **Aucun mot de passe à créer :** L'utilisateur clique sur **"Se connecter avec Discord"**.
+2. **Autorisation :** Il autorise le site à lire son identifiant Discord (`discord_id`), son pseudo (`username`), son avatar et ses rôles sur le serveur Misaki.
+3. **Persistance des sessions :** Le site crée un cookie/token sécurisé (JWT) pour que l'utilisateur reste connecté. Son `discord_id` (qui est unique et immuable) sert de clé primaire dans la base de données. Il n'y a donc **aucun risque de doublon**.
+
+---
+
+## 👑 2. Comment gérer les accès Admin+ (Super Admins) ?
+
+Pour définir les **premiers Admin+** qui auront tous les droits dès le départ sans passer par le site, la meilleure pratique est de **hardcoder leurs IDs Discord dans les variables d'environnement (`.env`) du code** :
+
+```env
+# Liste des IDs Discord des fondateurs / super-admins (séparés par des virgules)
+SUPER_ADMIN_IDS="123456789012345678,987654321098765432"
+
+```
+
+* **Pourquoi faire ça ?** Même si la base de données est réinitialisée ou que le site est relancé, ces personnes conservent leur accès administrateur absolu.
+* **Accès Admin supplémentaire :** Depuis le panel du site, ces Super-Admins pourront ensuite attribuer le rôle **Admin** ou **Capitaine** à d'autres membres directement dans la liste des utilisateurs du site.
+
+---
+
+## 🎭 3. Modèle de Rôles & Permissions sur le Site
+
+Le site appliquera un système de **RBAC** (*Role-Based Access Control*). Dès qu'un utilisateur se connecte, le site vérifie son rôle et adapte l'interface :
+
+| Rôle sur le Site | Comment il est attribué | Ce qu'il voit / peut faire |
+| --- | --- | --- |
+| **Visiteur / Membre** | Automatique à la connexion | Voir la course (Race) en direct, la roue, le classement et entrer un code capitaine pour rejoindre une équipe. |
+| **Capitaine** | - Soit attribué par un Admin via le panel<br>
+
+<br>- Soit automatique si le membre possède le rôle Discord "GS" | Accès au **Dashboard Capitaine** : voir son code d'équipe, renommer sa team, virer un membre, suivre les heures de sa team. |
+| **Admin / GS+** | Attribué par un Super-Admin dans le panel ou via variable `.env` | Accès au **Panel Admin** : gérer toutes les équipes, attribuer/retirer les rôles sur le site, modifier la récompense, lancer la roue, réinitialiser la semaine. |
+
+---
+
+## 🎟️ 4. Système d'Équipe par Code Capitaine
+
+Ce système est fluide et simplifie les inscriptions :
+
+1. **Génération du Code :** Dès qu'un utilisateur devient **Capitaine**, le site lui génère un code unique (ex: `MISA-789X` ou `DREAM-ALEX`). Il peut aussi personnaliser son code depuis son dashboard.
+2. **Rejoindre une Équipe :**
+* Le membre staff se connecte sur le site.
+* Un champ texte indique : *"Entre le code de ton Capitaine"*.
+* Une fois le code saisi et validé, le membre est automatiquement lié à la `team_id` du Capitaine dans la base de données.
+
+
+3. **Contraintes automatiques :**
+* Un membre ne peut appartenir qu'à **une seule équipe à la fois**. S'il entre un nouveau code, le site peut lui demander confirmation avant de changer d'équipe.
+* L'Admin peut fixer une limite maximum de membres par équipe (ex: 10 membres).
+
+
+
+---
+
+## 📊 5. Modèle de Base de Données (Anti-Doublon & Suivi d'Activité)
+
+Pour garantir la conservation des données et le suivi dynamique en temps réel, voici à quoi ressemble la structure de la base de données :
+
+### Table `users` (Membres & Staffs)
+
+* `discord_id` *(Clé unique)* : `2384729384729384`
+* `username` : `MisakiFan`
+* `avatar_url` : `[https://cdn.discordapp.com/](https://cdn.discordapp.com/)...`
+* `site_role` : `'MEMBER'`, `'CAPTAIN'`, ou `'ADMIN'`
+* `team_id` : ID de l'équipe rejointe (ou `null` s'il n'a pas encore d'équipe)
+* `created_at` : Date de première connexion
+
+### Table `teams` (Équipes)
+
+* `id` : `1`
+* `name` : `Team Alpha`
+* `captain_id` : `discord_id` du capitaine
+* `join_code` : `DREAM-789X` *(Code à donner aux membres)*
+
+### Table `voice_activity` (Suivi du Temps Vocal)
+
+* `id` : `101`
+* `discord_id` : `2384729384729384`
+* `week_number` : `42` *(Numéro de la semaine)*
+* `total_seconds` : `36000` *(Converti en 10 heures sur le site)*
+* `last_active` : Horodatage de la dernière présence en vocal
+
+---
+
+## 🔄 Flux d'Utilisation Récapitulatif
+
+1. **Le Super Admin** se connecte (reconnu automatiquement grâce à son ID dans le `.env`).
+2. **L'Admin** attribue le rôle **Capitaine** à un membre GS sur le panel.
+3. **Le Capitaine** se connecte, va sur son Dashboard, renomme son équipe et récupère son **Code d'équipe** (ex: `DREAM-ALEX`).
+4. **Le Membre Staff** se connecte avec Discord, tape `DREAM-ALEX` et rejoint l'équipe.
+5. **Le Bot Discord** traque sa présence en vocal public et met à jour `total_seconds` en temps réel.
+6. **Le Site Web** affiche la progression de l'équipe sur la ligne de course !

@@ -1,0 +1,113 @@
+Cette idée d'**effet de multiplicateur de groupe** est tout simplement géniale ! Elle résout un problème clé de la modération : l'effet de groupe. Cela oblige les membres de l'équipe à se motiver mutuellement pour aller en vocal en même temps.
+
+Voici comment structurer techniquement et visuellement ces 3 nouveaux éléments :
+
+---
+
+## ⚡ 1. Le Système de Vitesse & Multiplicateur de Presence Vocal (Dynamic Speed)
+
+Pour que la course de l'équipe aille plus vite lorsque toute l'équipe est connectée en vocal public, on applique un **facteur de vitesse (multiplicateur)** basé sur le ratio de membres actifs.
+
+### 📊 La Formule de Vitesse
+
+$$\text{Vitesse de l'équipe} = (\text{Heures cumulées par les membres en vocal}) \times \text{Multiplicateur de Présence}$$
+
+* **Ratio de présence :** $\frac{\text{Membres actuellement en vocal}}{\text{Nombre total de membres dans la team}}$
+* **Paliers de Multiplicateur (Exemple) :**
+* **Moins de 20% de l'équipe en vocal (ex: 2/15) :** Multiplicateur $\times 0.5$ *(La voiture avance très lentement)*
+* **Entre 20% et 50% de l'équipe (ex: 5/15) :** Multiplicateur $\times 1.0$ *(Vitesse normale)*
+* **Entre 50% et 80% de l'équipe (ex: 10/15) :** Multiplicateur $\times 1.5$ *(Boost de vitesse)*
+* **Plus de 80% de l'équipe (ex: 13/15) :** Multiplicateur $\times 2.0$ **[PNEU EN FEU 🔥]** *(Vitesse maximale / Turbo !)*
+
+
+
+### 🏎️ Visualisation sur le Site
+
+Sur la piste de course interactive :
+
+* À côté de la voiture/avatar de chaque équipe, un indicateur montre le nombre de personnes en vocal en direct (ex: `🟢 13/15 en vocal`).
+* Si l'équipe est en mode Turbo ($\times 2.0$), la voiture affiche des **effets visuels de flammes** ou d'éclairs pour motiver la concurrence à se connecter aussi !
+
+---
+
+## 📝 2. Gestion des Missions Hebdomadaires par l'Admin+
+
+Dans le **Panel Admin+**, une interface dédiée permettra aux Administrateurs de configurer les défis chaque lundi ou début de semaine.
+
+### ⚙️ Fonctionnalités de l'Admin Panel :
+
+* **Créer / Éditer un Défi :**
+* *Titre du défi :* Ex: "Discuter dans le chat général"
+* *Type d'activité :* Messages texte / Temps de Stream / Activité salon spécifique (ex: Coins).
+* *Objectif chiffré :* Ex: `900` messages ou `120` minutes de stream.
+* *Récompense / Bonus :* Ex: `+3 heures` virtuelles ajoutées sur la course.
+
+
+* **Valider ou Réinitialiser :**
+* L'Admin+ peut voir la progression en pourcentage de chaque équipe sur chaque mission.
+* Possibilité de forcer la validation d'une mission en cas d'imprévu.
+
+
+
+---
+
+## 🎡 3. Lancement Automatique de la Roue à la Fin du Décompte
+
+Pour éviter d'avoir à lancer la roue manuellement et pour créer du suspense en live avec toute la communauté, le tirage peut être automatisé dès la fin du timer !
+
+### ⏳ Déroulement Automatique :
+
+1. **Compte à rebours à zéro ($00:00:00$) :**
+* Le classement de la course se gèle instantanément.
+* L'équipe arrivée en **Top 1** est désignée automatiquement par le serveur backend.
+
+
+2. **Filtrage Éligibilité (Anti-Injustice) :**
+* Le système vérifie automatiquement les membres de l'équipe gagnante qui possèdent **au moins 10 heures de vocal au compteur**.
+* Les membres qui n'ont pas atteint les 10h ne sont pas intégrés sur la roue.
+
+
+3. **Chargement de la Roue Interactive :**
+* La page du site passe automatiquement en mode **"Grand Tirage"**.
+* La roue se génère avec :
+* Les pseudos et photos de profil des membres éligibles.
+* **Le Capitaine** affiché en **Couleur Or 👑** avec 2 sections sur la roulette ($2\times$ plus de chances).
+
+
+
+
+4. **Animation du Lancement :**
+* Après un décompte visuel de 10 secondes (*"Lancement de la roue dans 10... 9... 8..."*), la roue tourne automatiquement et s'arrête sur le gagnant du Nitro !
+* Une animation de confettis s'affiche à l'écran, et un message d'annonce automatique est envoyé par le bot dans le salon d'annonces Discord.
+
+
+
+---
+
+## 🛠️ Récapitulatif du Fonctionnement Global
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      BOT DISCORD (24h/24)                       │
+│  - Traque le vocal public & calcule le ratio de présence (Speed)│
+│  - Compte les messages chat & streams (Missions hebdo)          │
+└────────────────────────────────────────┬────────────────────────┘
+                                         │
+                                         ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    BASE DE DONNÉES CENTRALE                     │
+│  - Reçoit les données de temps & missions                       │
+│  - Applique le multiplicateur de présence                       │
+└────────────────────────────────────────┬────────────────────────┘
+                                         │
+                                         ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                        SITE WEB DYNAMIC                         │
+│  - Affiche la course en direct avec effets de vitesse (Turbo)  │
+│  - Interface Admin+ (Création de missions, attribution de rôles) │
+│  - À T-0 : Verrouillage du classement + Lancement de la Roue   │
+└─────────────────────────────────────────────────────────────────┘
+
+```
+
+Ce système crée une expérience utilisateur fluide et ultra-compétitive pour booster le vocal du serveur !

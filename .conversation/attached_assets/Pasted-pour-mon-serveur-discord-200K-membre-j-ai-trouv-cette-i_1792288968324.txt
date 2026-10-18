@@ -1,0 +1,82 @@
+pour mon serveur discord à 200K membre j'ai trouvé cette idée :
+
+## 🪽 ・La Dream Team
+
+*Qui sera la meilleure team de misaki ?*
+
+
+
+**Les Gestions Staffs seront des Capitaines ! ** 🪖 
+
+**Leur nouvel objectif sera de composer une équipe constituée uniquement de staffs et de les maintenir actifs en vocal.**
+
+
+
+A la fin de la semaine, il y aura un classement par équipe et l'équipe top 1 aura un **gw nitro** organisé avec uniquement avec les membres de son équipe soit 10x plus de chances de gagner un nitro comparé à un gw nitro avec 200K participants.
+
+Il faudra bien sur accomplir les missions pour valider la semaine comme des mini-jeu (résoudre des énigmes, 4 images 1 mot etc.). 
+
+
+
+Au fur et à mesure leur équipe doit grandir, et accumuler le plus de vocal. Et au fur et à mesure, les membres des équipes pourraient être intéressé pour être capitaine d'équipe dans ces cas là ils devront faire une candidature GS. Et à leur tour monter une équipe.
+
+
+
+Et Maintenant, comment les GS s'organisent ?
+
+
+
+**➜ Pour composer leur équipe :**
+
+Le GS choisit un minimum de 5 membres, puis il crée un groupe en privé et ajoute un haut gradé gestion. Le GS doit gérer seul le groupe, leur donner des rappel d'aller en vocal, les motiver pour la récompense etc.
+
+ 
+
+**➜ Comment se déroule le classement et le bilan ?**
+
+Le GS doit faire un compte rendu de l'activité de sa team. Comme pour une liste staff, il va devoir s?u tout les membres de son équipe et faire une liste. Et la poster dans son salon perso. Ensuite les haut gradé regarderont et vérifieront, puis feront le classement.
+
+
+
+**➜ L'attribution du nitro/déco ?**
+
+L'équipe qui sera top 1 sera inscrit sur une roue et on tirera au hasard qui obtiendra la récompense. ATTENTION : pour éviter les injustices au sein d'un même groupe le membre doit avoir un minimum de 10h de vocal.
+
+
+
+**➜ Règlement:**
+
+Seuls les GS confirmés peuvent être des capitaines. 
+
+Les GS test peuvent être dans une équipe mais lorsqu'ils seront confirmés ils auront l'obligation de créer leur team.
+
+Deux GS confirmés ne peuvent être dans la même équipe.
+
+
+
+Note :
+
+
+
+C'est une nouvelle activité pour les GS puisqu'avec l'automatisation par les bots, il est inutile d'instaurer des système. Mais le problème de l'activité vocal persiste, les staffs ne vont pas assez dans les vocaux publics.
+
+
+
+En plus, si ça fonctionne bien, ça sera une modernisation de la GS puisqu'il faudra plus de Capitaines pour faire plus d'équipes et donc plus de staffs en vocal.
+
+
+
+Enfin, c'est la "Gestion Staff" donc cette activité correspond à la gestion, elle permet aux GS de maintenir les staffs actifs. Seuls les bots ne pourront suffire, il faut cette motivation et cette part d'incitation humaine, et les réunions sont bcp trop générales. Alors que des équipes plus petites sont plus pratiques.
+
+
+
+Faire un site : DreamTeam Misaki !
+
+Ce site contient
+
+Un bouton devenir Capitaine et ça te redigérige vers une page qui explique enft c quoi le but d'être capitaine et un bouton rejoindre le serveur discord pour postuler.
+Un mode pour les Capitaines d'équipes de pouvoir gérer les membres de leur équipe (ajouter/retirer) et créer un nom d'équipe.
+Un mode du site pour les Admin qui vont avoir accès à des boutons comme: supprimer l'équipe, renommer l'équipe, choisir la récompense, supprimer/ajouter un membre de l'équipe,.
+Les équipes pourront voir la récompense de la semaine et un classement en live direct une sorte de race avec le nom de chaque team et le cadeau en bout et c'est une course et celui qui a le plus d'heure de vocal se rapproche le plus du cadeau et donc ça permet aux équipe de voir en temps réel s'ils se rapprochent ou non de la récompense. + en haut un temps qui s'écoule. Ca permet plus de compétivité entre les membres des équipes et capitaines donc plus de matrixe = plus de voc.
+Mais dcp le site va devoir prendre l'activité des membres en temps réel via discord et le relayer.
+Une roue qui comporte le nom de tout les membres de l'équipe qui aura fait le plus de vocal donc qui aura atteint le cadeau. C'est une roue de toute les couleur avec le nom d'utilisateur et la photo de profil de chaque membre de l'équipe gagnante. Et pour le capitaine d'équipe il sera affiché en couleur or et deux fois sur la roulette le capitaine à 2x plus de chance. Et dcp le compteur sera sur la roue et ça fera il reste X temps pour débloquer la roue et obtenir la récompense.
