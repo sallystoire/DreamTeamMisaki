@@ -207,6 +207,30 @@ paths:
         "404":
           description: Member not found
   /admin/teams:
+    post:
+      operationId: createAdminTeam
+      tags: [admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminTeamInput"
+      responses:
+        "201":
+          description: Team created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Team"
+        "400":
+          description: Invalid input
+        "403":
+          description: Admin+ required
+        "404":
+          description: Captain must first sign in
+        "409":
+          description: Captain or code already assigned
     get:
       operationId: listAdminTeams
       tags: [admin]
@@ -328,6 +352,51 @@ paths:
           description: Admin+ access required
         "404":
           description: Team member not found
+  /admin/challenges/{challengeId}/reward:
+    patch:
+      operationId: updateAdminChallengeReward
+      tags: [admin]
+      parameters:
+        - name: challengeId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChallengeRewardUpdate"
+      responses:
+        "200":
+          description: Reward updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Challenge"
+        "403":
+          description: Admin+ required
+        "404":
+          description: Challenge not found
+    delete:
+      operationId: clearAdminChallengeReward
+      tags: [admin]
+      parameters:
+        - name: challengeId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Reward removed; challenge and scores preserved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Challenge"
+        "403":
+          description: Admin+ required
+        "404":
+          description: Challenge not found
   /admin/challenges:
     get:
       operationId: listAdminChallenges
@@ -533,6 +602,18 @@ components:
       required: [code]
       properties:
         code: { type: string, minLength: 4, maxLength: 32 }
+    AdminTeamInput:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 2, maxLength: 32 }
+        captainDiscordId: { type: string, pattern: "^[0-9]{17,20}$" }
+        joinCode: { type: string, minLength: 4, maxLength: 32, pattern: "^[A-Za-z0-9-]+$" }
+    ChallengeRewardUpdate:
+      type: object
+      required: [reward]
+      properties:
+        reward: { type: string, maxLength: 120 }
     TeamNameUpdate:
       type: object
       required: [name]

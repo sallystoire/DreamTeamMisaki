@@ -180,6 +180,27 @@ export interface JoinTeamInput {
   code: string;
 }
 
+export interface AdminTeamInput {
+  /**
+     * @minLength 2
+     * @maxLength 32
+     */
+  name: string;
+  /** @pattern ^[0-9]{17,20}$ */
+  captainDiscordId?: string;
+  /**
+     * @minLength 4
+     * @maxLength 32
+     * @pattern ^[A-Za-z0-9-]+$
+     */
+  joinCode?: string;
+}
+
+export interface ChallengeRewardUpdate {
+  /** @maxLength 120 */
+  reward: string;
+}
+
 export interface TeamNameUpdate {
   /**
      * @minLength 2

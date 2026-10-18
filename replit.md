@@ -9,7 +9,7 @@ Site privé de compétition hebdomadaire : connexion Discord, équipes de capita
 - `pnpm run typecheck` — vérification TypeScript complète
 - `pnpm --filter @workspace/api-spec run codegen` — régénère les hooks React et schémas Zod depuis OpenAPI
 - `pnpm --filter @workspace/db run push` — applique le schéma PostgreSQL de développement
-- Configuration nécessaire : `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET` (secret), `DISCORD_GUILD_ID`, `DISCORD_BOT_TOKEN` (secret). `ADMIN_DISCORD_IDS` peut étendre les Admin+ initiaux. `DISCORD_REDIRECT_URI` est optionnel en développement et requis en production.
+- Configuration nécessaire : `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET` (secret), `DISCORD_MISAKI_GUILD_ID`, `DISCORD_RECRUITMENT_GUILD_ID`, `DISCORD_BOT_TOKEN` (secret). `DISCORD_GUILD_ID` reste un ancien alias du serveur principal. `ADMIN_DISCORD_IDS` peut étendre les Admin+ initiaux. `DISCORD_REDIRECT_URI` est optionnel en développement et requis en production.
 
 ## Stack
 
@@ -48,6 +48,13 @@ Les membres se connectent via Discord et rejoignent une équipe par code. Les ca
 ## User preferences
 
 Pas de préférence générale à noter pour le moment.
+
+## Démo et accès
+
+- Les visiteurs déconnectés voient une démo animée avec des équipes fictives clairement identifiées. Les comptes connectés voient exclusivement les vraies équipes. La démo ne doit jamais modifier la base.
+- Le choix d’équipe affiche le classement réel même si l’accueil est en démo; les codes d’invitation ne sont jamais publics.
+- Admin+ doit pouvoir créer directement une équipe et modifier ou retirer le cadeau de la semaine. Retirer le cadeau ne doit pas supprimer le défi ni ses scores.
+- Le serveur principal Misaki et le serveur recrutement sont distincts. Vérifier la correspondance des invitations avant de configurer leurs IDs pour éviter de suivre le vocal du recrutement.
 
 ## Gotchas
 

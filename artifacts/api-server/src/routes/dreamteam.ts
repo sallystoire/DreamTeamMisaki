@@ -56,6 +56,7 @@ import {
   requireDreamteamUser,
 } from "../middlewares/dreamteam-auth";
 import { logger } from "../lib/logger";
+import { joinTeamByCode, MembershipError } from "../lib/teamMembership";
 
 const router: IRouter = Router();
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
@@ -168,54 +169,15 @@ router.post("/teams/join", async (req, res): Promise<void> => {
     res.status(400).json({ error: body.error.message });
     return;
   }
-  if (user.role !== "MEMBER") {
-    res.status(403).json({ error: "Seuls les membres peuvent rejoindre une équipe." });
-    return;
+  try {
+    const team = await joinTeamByCode({ discordId: user.discordId }, body.data.code);
+    res.json(JoinTeamResponse.parse(teamToDto(team, false)));
+  } catch (error) {
+    if (error instanceof MembershipError) {
+      res.status(error.status).json({ error: error.message }); return;
+    }
+    throw error;
   }
-  const [currentUser] = await db
-    .select({ teamId: dreamUsersTable.teamId })
-    .from(dreamUsersTable)
-    .where(eq(dreamUsersTable.discordId, user.discordId))
-    .limit(1);
-  if (currentUser?.teamId) {
-    res.status(400).json({ error: "Tu appartiens déjà à une équipe." });
-    return;
-  }
-
-  const [team] = await db
-    .select()
-    .from(dreamTeamsTable)
-    .where(
-      and(
-        eq(dreamTeamsTable.joinCode, body.data.code.trim().toUpperCase()),
-        isNull(dreamTeamsTable.archivedAt),
-      ),
-    )
-    .limit(1);
-  if (!team) {
-    res.status(400).json({ error: "Ce code d’équipe est invalide ou expiré." });
-    return;
-  }
-  const [joined] = await db
-    .update(dreamUsersTable)
-    .set({ teamId: team.id, updatedAt: new Date() })
-    .where(
-      and(
-        eq(dreamUsersTable.discordId, user.discordId),
-        isNull(dreamUsersTable.teamId),
-      ),
-    )
-    .returning({ discordId: dreamUsersTable.discordId });
-  if (!joined) {
-    res.status(400).json({ error: "Tu appartiens déjà à une équipe." });
-    return;
-  }
-  await updateActiveVoiceTeam(user.discordId, team.id);
-  await writeAudit(user.discordId, "team.join", {
-    targetDiscordId: user.discordId,
-    targetTeamId: team.id,
-  });
-  res.json(JoinTeamResponse.parse(teamToDto(team, false)));
 });
 
 router.patch("/teams/me", async (req, res): Promise<void> => {
@@ -254,7 +216,7 @@ router.patch("/teams/me", async (req, res): Promise<void> => {
 router.delete("/teams/me/members/:discordId", async (req, res): Promise<void> => {
   const user = requireDreamteamUser(req, res);
   if (!user) return;
-  if (user.role !== "CAPTAIN") {
+  if (!["CAPTAIN", "ADMIN", "ADMIN_PLUS"].includes(user.role)) {
     res.status(403).json({ error: "Accès réservé au capitaine." });
     return;
   }
@@ -365,7 +327,7 @@ router.patch("/admin/members/:discordId/role", async (req, res): Promise<void> =
       ),
     )
     .limit(1);
-  if (ownedTeam && role !== "CAPTAIN") {
+  if (ownedTeam && !["CAPTAIN", "ADMIN", "ADMIN_PLUS"].includes(role)) {
     res.status(400).json({
       error: "Archive l’équipe du capitaine avant de lui retirer ce rôle.",
     });
@@ -500,7 +462,7 @@ router.delete("/admin/teams/:teamId", async (req, res): Promise<void> => {
       .update(dreamUsersTable)
       .set({
         teamId: null,
-        role: sql`CASE WHEN ${dreamUsersTable.discordId} = ${team.captainDiscordId} THEN 'MEMBER' ELSE ${dreamUsersTable.role} END`,
+        role: sql`CASE WHEN ${dreamUsersTable.discordId} = ${team.captainDiscordId} AND ${dreamUsersTable.role} = 'CAPTAIN' THEN 'MEMBER' ELSE ${dreamUsersTable.role} END`,
         updatedAt: now,
       })
       .where(eq(dreamUsersTable.teamId, team.id));
@@ -542,8 +504,8 @@ router.post("/admin/teams/:teamId/members", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Ce membre doit d’abord se connecter au site." });
     return;
   }
-  if (member.role !== "MEMBER") {
-    res.status(400).json({ error: "Un capitaine ou Admin+ ne peut pas rejoindre cette équipe." });
+  if (member.role === "CAPTAIN") {
+    res.status(400).json({ error: "Un capitaine ne peut pas rejoindre l’équipe d’un autre capitaine." });
     return;
   }
   if (member.teamId && member.teamId !== team.id) {
@@ -592,6 +554,10 @@ router.delete(
     if (!params.success) {
       res.status(400).json({ error: params.error.message });
       return;
+    }
+    const team = await getTeamById(params.data.teamId);
+    if (team?.captainDiscordId === params.data.discordId) {
+      res.status(409).json({ error: "Le capitaine ne peut pas être retiré de son équipe. Archive l’équipe pour la dissoudre." }); return;
     }
     const [removed] = await db
       .update(dreamUsersTable)

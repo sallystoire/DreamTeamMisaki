@@ -1,4 +1,8 @@
-import { type ReactNode, createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import { AuthProvider, useAuth } from '@/lib/auth';
+import { JoinDialogProvider, useJoinDialog } from '@/components/join-dialog';
+import { DemoRace } from '@/components/demo-race';
+import { CreateTeamForm, RewardManager } from '@/components/admin-extras';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import {
   useAddAdminTeamMember,
@@ -37,52 +41,14 @@ const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 8000, retry: 1, refetchOnWindowFocus: true } },
 });
 
-type AuthUser = { username?: string; global_name?: string; displayName?: string; role?: string; avatarUrl?: string; id?: string; discordId?: string };
 type Feedback = { text: string; kind: 'error' | 'success' } | null;
-
-function useCurrentUser() {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [failed, setFailed] = useState(false);
-  const load = async () => {
-    setLoading(true);
-    setFailed(false);
-    try {
-      const response = await fetch('/api/auth/user', { credentials: 'include' });
-      if (!response.ok) {
-        if (response.status === 401 || response.status === 403) setUser(null);
-        else setFailed(true);
-      } else {
-        const result: unknown = await response.json();
-        const candidate = result && typeof result === 'object' && 'user' in result
-          ? (result as { user?: AuthUser }).user
-          : result as AuthUser;
-        setUser(candidate && typeof candidate === 'object' ? candidate : null);
-      }
-    } catch { setFailed(true); }
-    finally { setLoading(false); }
-  };
-  useEffect(() => { void load(); }, []);
-  return { user, loading, failed, reload: load };
-}
-
-type AuthState = ReturnType<typeof useCurrentUser>;
-const AuthContext = createContext<AuthState | null>(null);
-function AuthProvider({ children }: { children: ReactNode }) {
-  const auth = useCurrentUser();
-  return <AuthContext.Provider value={auth}>{children}</AuthContext.Provider>;
-}
-function useAuth(): AuthState {
-  const value = useContext(AuthContext);
-  if (!value) throw new Error('AuthProvider manquant');
-  return value;
-}
 const roleLabels: Record<string, string> = { MEMBER: 'Équipier', CAPTAIN: 'Capitaine', ADMIN: 'Admin', ADMIN_PLUS: 'Admin+' };
 
 function Shell({ children }: { children: ReactNode }) {
   const [path] = useLocation();
   const auth = useAuth();
   const role = auth.user?.role;
+  const joinDialog = useJoinDialog();
   const displayName = auth.user?.global_name || auth.user?.displayName || auth.user?.username;
   const links: { href: string; label: string; gold?: boolean; testid: string }[] = [{ href: '/', label: 'La course', testid: 'link-race' }];
   if (!auth.user) links.push({ href: '/captain', label: 'Devenir Capitaine', gold: true, testid: 'link-captain' });
@@ -94,9 +60,11 @@ function Shell({ children }: { children: ReactNode }) {
     <div className="app-shell">
       <header className="site-header">
         <Link href="/" className="brand" data-testid="link-home" aria-label="DreamTeam Misaki - accueil">
-          <img src={`${import.meta.env.BASE_URL}logo.jpg`} alt="DreamTeam Misaki" className="brand-logo" data-testid="img-logo" />
+          <img src={`${import.meta.env.BASE_URL}logo.jpg`} alt="" className="brand-logo" data-testid="img-logo" />
+          <span className="brand-text"><b>Dream Team</b><small>by Misaki</small></span>
         </Link>
         <nav className="nav-links" aria-label="Navigation principale">
+          <button type="button" className="nav-link gold-soft" onClick={(e) => joinDialog.open(e.currentTarget)} data-testid="button-open-join">Rejoindre une équipe</button>
           {links.map((l) => <Link key={l.href} href={l.href} className={`nav-link ${l.gold ? 'gold' : ''} ${path === l.href ? 'active' : ''}`} data-testid={l.testid}>{l.label}</Link>)}
         </nav>
         <div className="header-right">
@@ -230,7 +198,7 @@ function Avatar({ member }: { member: Pick<Member, 'username' | 'avatarUrl'> }) 
   </div>;
 }
 
-function Countdown({ seconds }: { seconds: number }) {
+function Countdown({ seconds, label = 'La ligne d’arrivée approche' }: { seconds: number; label?: string }) {
   const [remaining, setRemaining] = useState(Math.max(0, seconds));
   useEffect(() => { setRemaining(Math.max(0, seconds)); }, [seconds]);
   useEffect(() => {
@@ -242,7 +210,7 @@ function Countdown({ seconds }: { seconds: number }) {
   const m = Math.floor((remaining % 3600) / 60);
   const s = remaining % 60;
   return <div className="timer-box" data-testid="challenge-countdown" aria-label={`${d} jours, ${h} heures, ${m} minutes restantes`}>
-    <div className="timer-label">La ligne d’arrivée approche</div>
+    <div className="timer-label">{label}</div>
     <div className="timer-digits"><span>{String(d).padStart(2, '0')}<small>J</small></span><span>:</span><span>{String(h).padStart(2, '0')}<small>H</small></span><span>:</span><span>{String(m).padStart(2, '0')}<small>M</small></span><span>:</span><span>{String(s).padStart(2, '0')}<small>S</small></span></div>
   </div>;
 }
@@ -266,32 +234,34 @@ function ChallengeResult({ challenge }: { challenge: Challenge }) {
 }
 
 function HomePage() {
+  const auth = useAuth();
   const dashboard = useGetDreamTeamDashboard({ query: { queryKey: getGetDreamTeamDashboardQueryKey(), refetchInterval: 20000 } });
   const data = dashboard.data;
   const leaderboard = data?.leaderboard ?? [];
   const maxHours = Math.max(1, ...leaderboard.map((team) => team.voiceHours));
   const activeChallenge = data?.challenge?.status === 'ACTIVE';
   const completedChallenge = data?.challenge?.status === 'COMPLETED';
+  const showDemo = !auth.loading && !auth.user && !auth.failed;
   return <>
     <div className="hero-top">
       <div>
         <div className="eyebrow">Une semaine. Une équipe. Un seul trophée.</div>
         <h1 className="hero-title">
-          {dashboard.isLoading ? <>Le classement<br /><span>arrive.</span></> : activeChallenge ? <>La course<br />est <span>lancée.</span></> : completedChallenge ? <>Le défi est<br /><span>terminé.</span></> : <>La course<br /><span>se prépare.</span></>}
+          {showDemo ? <>Découvre<br /><span>la course.</span></> : dashboard.isLoading ? <>Le classement<br /><span>arrive.</span></> : activeChallenge ? <>La course<br />est <span>lancée.</span></> : completedChallenge ? <>Le défi est<br /><span>terminé.</span></> : <>La course<br /><span>se prépare.</span></>}
         </h1>
         <p className="hero-sub">
-          {activeChallenge
+          {showDemo ? 'Un aperçu animé avec des équipes fictives. Connecte ton Discord pour rejoindre la vraie compétition.' : activeChallenge
             ? 'Chaque minute passée ensemble en vocal rapproche votre équipe de la victoire. Le classement bouge en direct, à vous de jouer.'
             : completedChallenge
               ? 'Le compteur est arrêté et les résultats de la semaine restent consultables pendant la préparation du prochain défi.'
               : 'Aucun défi n’est ouvert. Un Admin+ pourra lancer la prochaine course de sept jours depuis le panneau Gestion.'}
         </p>
       </div>
-      {data?.challenge?.status === 'ACTIVE' ? <Countdown seconds={data.secondsRemaining} /> : (
+      {showDemo ? <Countdown seconds={3 * 86400 + 12 * 3600 + 48 * 60 + 12} label="Compte à rebours fictif" /> : data?.challenge?.status === 'ACTIVE' ? <Countdown seconds={data.secondsRemaining} /> : (
         <div className="timer-box"><div className="timer-label">{data?.challenge ? 'Semaine terminée' : 'Prochaine course'}</div><div className="timer-digits">{data?.challenge ? 'FINISH' : 'BIENTÔT'}</div></div>
       )}
     </div>
-    {dashboard.isLoading ? <div className="race-grid"><div className="panel" style={{ padding: 20 }}><LoadingRows /></div><div className="skeleton" style={{ height: 330 }} /></div> : dashboard.isError ? <ErrorBox onRetry={() => void dashboard.refetch()} /> : (
+    {auth.failed ? <ErrorBox onRetry={() => void auth.reload()} text="Impossible de vérifier ta connexion Discord." /> : showDemo ? <><DemoRace /><div className="rules-strip" style={{ marginTop: 0 }}><div className="rule-item"><span className="rule-num">01</span><div><strong>Faites vivre le vocal</strong><span>Le total de l’équipe grimpe avec les heures en salon public.</span></div></div><div className="rule-item"><span className="rule-num">02</span><div><strong>10 h pour le tirage</strong><span>À la clôture, seuls les membres à 10 h ou plus sont éligibles.</span></div></div><div className="rule-item"><span className="rule-num">03</span><div><strong>Le capitaine double</strong><span>Le capitaine éligible compte deux tickets au tirage final.</span></div></div></div></> : auth.loading || dashboard.isLoading ? <div className="race-grid"><div className="panel" style={{ padding: 20 }}><LoadingRows /></div><div className="skeleton" style={{ height: 330 }} /></div> : dashboard.isError ? <ErrorBox onRetry={() => void dashboard.refetch()} /> : (
       <>
         {data?.challenge && <div className="race-grid">
           <section className="panel" aria-labelledby="leaderboard-title">
@@ -311,7 +281,7 @@ function HomePage() {
           <aside>
             <div className="reward-card">
               <div className="reward-kicker">À la clé cette semaine</div>
-              <h2 className="reward-title" data-testid="text-reward">{data.challenge.reward}</h2>
+              <h2 className="reward-title" data-testid="text-reward">{data.challenge.reward || 'Pas de récompense cette semaine'}</h2>
               <p className="reward-copy">La première équipe au cumul d’heures vocales prend la tête. Un ticket de tirage pour chaque membre éligible.</p>
               <div className="reward-icon"><Trophy size={19} /></div>
             </div>
@@ -343,6 +313,7 @@ function TeamPage() {
     },
   });
   const join = useJoinTeam();
+  const { open: openJoin } = useJoinDialog();
   const remove = useRemoveMyTeamMember();
   const [code, setCode] = useState('');
   const [feedback, setFeedback] = useState<Feedback>(null);
@@ -389,6 +360,7 @@ function TeamPage() {
         <p className="hint" style={{ margin: '-8px 0 18px' }}>Un seul code suffit. Tu ne peux être inscrit que dans une équipe à la fois.</p>
         {auth.user ? <form className="form-row" onSubmit={submitJoin}><input className="text-input" aria-label="Code d’invitation" data-testid="input-join-code" placeholder="Ex. MISAKI-24" minLength={4} maxLength={32} required value={code} onChange={(e) => setCode(e.target.value)} /><button className="btn btn-primary" disabled={join.isPending || code.trim().length < 4} data-testid="button-join-team">{join.isPending ? <LoaderCircle size={15} /> : <ChevronRight size={15} />} Rejoindre</button></form> : <a className="btn btn-primary" href="/api/auth/discord/login" data-testid="button-team-login"><LogIn size={15} /> Se connecter avec Discord</a>}
         {feedback && <div className={`${feedback.kind}-note`} role={feedback.kind === 'error' ? 'alert' : 'status'}>{feedback.text}</div>}
+        <div style={{ marginTop: 14 }}><button type="button" className="btn gold" onClick={(e) => openJoin(e.currentTarget)} data-testid="button-open-join-team">Rejoindre une équipe</button></div>
         <div className="notice"><Headphones size={15} /><span>Ta présence vocale est suivie par le bot Discord, mais aucune conversation n’est enregistrée.</span></div>
       </section>
     )}
@@ -426,6 +398,7 @@ function AdminPage() {
   const refreshMembers = () => void client.invalidateQueries({ queryKey: getListAdminMembersQueryKey() });
   const refreshTeams = () => {
     void client.invalidateQueries({ queryKey: getListAdminTeamsQueryKey() });
+    void client.invalidateQueries({ queryKey: getListAdminMembersQueryKey() });
     void client.invalidateQueries({ queryKey: getGetDreamTeamDashboardQueryKey() });
     void client.invalidateQueries({ queryKey: getGetMyTeamQueryKey() });
   };
@@ -485,6 +458,7 @@ function AdminPage() {
         <div className="section-title-row"><div><div className="eyebrow">Les escouades du moment</div><h2 style={{ marginTop: 6 }}>Équipes actives</h2></div><span className="role-badge">{teams.length} équipes</span></div>
         {teamsQuery.isLoading ? <LoadingRows amount={3} /> : teamsQuery.isError ? <ErrorBox onRetry={() => void teamsQuery.refetch()} /> : teams.length ? teams.map((team) => <TeamAdminRow key={team.id} team={team} onSave={saveTeam} onArchive={archive} onAdd={addToTeam} onRemove={removeFromTeam} />) : <div className="empty-state"><div className="empty-symbol"><Users size={17} /></div><strong>Pas encore d’équipe</strong><p>Les équipes apparaîtront ici après leur création par les capitaines.</p></div>}
       </section>
+      {isAdminPlus && <CreateTeamForm />}
       <section className="panel section-card" style={{ gridColumn: '1 / -1' }}>
         <div className="section-title-row"><div><div className="eyebrow">La suite de la saison</div><h2 style={{ marginTop: 6 }}>Défis hebdomadaires</h2></div><span className="role-badge">{challenges.length} semaines</span></div>
         {isAdminPlus ? <form className="create-form" onSubmit={submitChallenge}>
@@ -493,7 +467,8 @@ function AdminPage() {
           <button className="btn btn-primary" disabled={createChallenge.isPending || challengeTitle.trim().length < 3 || challengeReward.trim().length < 2} data-testid="button-create-challenge">{createChallenge.isPending ? <LoaderCircle size={15} /> : <Sparkles size={15} />} Lancer 7 jours</button>
         </form> : null}
         <div className="notice"><Clock3 size={15} /><span>Chaque défi dure sept jours. Les résultats précédents restent visibles après le lancement du suivant.{isAdminPlus ? '' : ' La création d’un défi est réservée aux Admin+.'}</span></div>
-        {challengesQuery.isLoading ? <div style={{ marginTop: 16 }}><LoadingRows amount={2} /></div> : challengesQuery.isError ? <div style={{ marginTop: 16 }}><ErrorBox onRetry={() => void challengesQuery.refetch()} /></div> : challenges.length ? <div style={{ marginTop: 16 }} data-testid="challenge-history">{challenges.map((challenge) => <div className="challenge-item" key={challenge.id} data-testid={`challenge-${challenge.id}`}><div><h3>{challenge.title}</h3><p>Récompense : {challenge.reward} · {formatDate(challenge.startsAt)} — {formatDate(challenge.endsAt)}{challenge.winningTeamName ? ` · Vainqueur : ${challenge.winningTeamName}` : ''}{challenge.winnerUsername ? ` · Tirage : ${challenge.winnerUsername}` : ''}</p></div><span className={`challenge-status ${challenge.status === 'COMPLETED' ? 'completed' : ''}`}>{challenge.status === 'ACTIVE' ? 'EN COURS' : challenge.drawStatus === 'DRAWN' ? 'TERMINÉ · TIRÉ' : challenge.drawStatus === 'NO_ELIGIBLE_MEMBERS' ? 'TERMINÉ · SANS ÉLIGIBLE' : 'TERMINÉ · EN ATTENTE'}</span></div>)}</div> : <div className="empty-state" style={{ marginTop: 16 }} data-testid="empty-challenges"><div className="empty-symbol"><Award size={17} /></div><strong>Aucun défi pour l’instant</strong><p>Le premier défi sera créé par un Admin+.</p></div>}
+        {isAdminPlus && <RewardManager challenges={challenges} />}
+        {challengesQuery.isLoading ? <div style={{ marginTop: 16 }}><LoadingRows amount={2} /></div> : challengesQuery.isError ? <div style={{ marginTop: 16 }}><ErrorBox onRetry={() => void challengesQuery.refetch()} /></div> : challenges.length ? <div style={{ marginTop: 16 }} data-testid="challenge-history">{challenges.map((challenge) => <div className="challenge-item" key={challenge.id} data-testid={`challenge-${challenge.id}`}><div><h3>{challenge.title}</h3><p>Récompense : {challenge.reward || 'aucune'} · {formatDate(challenge.startsAt)} — {formatDate(challenge.endsAt)}{challenge.winningTeamName ? ` · Vainqueur : ${challenge.winningTeamName}` : ''}{challenge.winnerUsername ? ` · Tirage : ${challenge.winnerUsername}` : ''}</p></div><span className={`challenge-status ${challenge.status === 'COMPLETED' ? 'completed' : ''}`}>{challenge.status === 'ACTIVE' ? 'EN COURS' : challenge.drawStatus === 'DRAWN' ? 'TERMINÉ · TIRÉ' : challenge.drawStatus === 'NO_ELIGIBLE_MEMBERS' ? 'TERMINÉ · SANS ÉLIGIBLE' : 'TERMINÉ · EN ATTENTE'}</span></div>)}</div> : <div className="empty-state" style={{ marginTop: 16 }} data-testid="empty-challenges"><div className="empty-symbol"><Award size={17} /></div><strong>Aucun défi pour l’instant</strong><p>Le premier défi sera créé par un Admin+.</p></div>}
       </section>
     </div>
     </>}
@@ -551,7 +526,7 @@ function NotFound() {
 
 function Router() {
   const [location] = useLocation();
-  return <ErrorBoundary resetKey={location}><AuthProvider><Shell><Switch><Route path="/" component={HomePage} /><Route path="/team" component={TeamPage} /><Route path="/admin" component={AdminPage} /><Route path="/captain" component={CaptainPage} /><Route component={NotFound} /></Switch></Shell></AuthProvider></ErrorBoundary>;
+  return <ErrorBoundary resetKey={location}><AuthProvider><JoinDialogProvider><Shell><Switch><Route path="/" component={HomePage} /><Route path="/team" component={TeamPage} /><Route path="/admin" component={AdminPage} /><Route path="/captain" component={CaptainPage} /><Route component={NotFound} /></Switch></Shell></JoinDialogProvider></AuthProvider></ErrorBoundary>;
 }
 
 function App() {

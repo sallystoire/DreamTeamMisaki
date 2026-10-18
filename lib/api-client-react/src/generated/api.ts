@@ -21,10 +21,12 @@ import type {
 
 import type {
   AdminAddTeamMemberInput,
+  AdminTeamInput,
   CaptainApplicationInput,
   CaptainApplicationStatus,
   Challenge,
   ChallengeInput,
+  ChallengeRewardUpdate,
   DashboardResponse,
   HealthStatus,
   JoinTeamInput,
@@ -873,6 +875,88 @@ export const useUpdateMemberRole = <TError = ErrorType<void>,
       return useMutation(getUpdateMemberRoleMutationOptions(options));
     }
 
+export const getCreateAdminTeamUrl = () => {
+
+
+
+
+  return `/api/admin/teams`
+}
+
+export const createAdminTeam = async (adminTeamInput: AdminTeamInput, options?: Parameters<typeof customFetch>[1]): Promise<Team> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<Team>(getCreateAdminTeamUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(adminTeamInput)
+  }
+);}
+
+
+
+
+
+export const getCreateAdminTeamMutationKey = () => ['createAdminTeam'] as const;
+
+export const getCreateAdminTeamMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminTeam>>, TError,CreateAdminTeamMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createAdminTeam>>, TError,CreateAdminTeamMutationVariables, TContext> => {
+
+const mutationKey = getCreateAdminTeamMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAdminTeam>>, CreateAdminTeamMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createAdminTeam(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateAdminTeamMutationResult = NonNullable<Awaited<ReturnType<typeof createAdminTeam>>>
+    export type CreateAdminTeamMutationBody = BodyType<AdminTeamInput>
+    export type CreateAdminTeamMutationError = ErrorType<void>
+    export type CreateAdminTeamMutationVariables = {data: BodyType<AdminTeamInput>}
+
+    export const useCreateAdminTeam = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminTeam>>, TError,CreateAdminTeamMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createAdminTeam>>,
+        TError,
+        CreateAdminTeamMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateAdminTeamMutationOptions(options));
+    }
+
 export const getListAdminTeamsUrl = () => {
 
 
@@ -1276,6 +1360,157 @@ export const useRemoveAdminTeamMember = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getRemoveAdminTeamMemberMutationOptions(options));
+    }
+
+export const getUpdateAdminChallengeRewardUrl = (challengeId: string,) => {
+
+
+
+
+  return `/api/admin/challenges/${challengeId}/reward`
+}
+
+export const updateAdminChallengeReward = async (challengeId: string,
+    challengeRewardUpdate: ChallengeRewardUpdate, options?: Parameters<typeof customFetch>[1]): Promise<Challenge> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<Challenge>(getUpdateAdminChallengeRewardUrl(challengeId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(challengeRewardUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateAdminChallengeRewardMutationKey = () => ['updateAdminChallengeReward'] as const;
+
+export const getUpdateAdminChallengeRewardMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminChallengeReward>>, TError,UpdateAdminChallengeRewardMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAdminChallengeReward>>, TError,UpdateAdminChallengeRewardMutationVariables, TContext> => {
+
+const mutationKey = getUpdateAdminChallengeRewardMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAdminChallengeReward>>, UpdateAdminChallengeRewardMutationVariables> = (props) => {
+          const {challengeId,data} = props ?? {};
+
+          return  updateAdminChallengeReward(challengeId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAdminChallengeRewardMutationResult = NonNullable<Awaited<ReturnType<typeof updateAdminChallengeReward>>>
+    export type UpdateAdminChallengeRewardMutationBody = BodyType<ChallengeRewardUpdate>
+    export type UpdateAdminChallengeRewardMutationError = ErrorType<void>
+    export type UpdateAdminChallengeRewardMutationVariables = {challengeId: string;data: BodyType<ChallengeRewardUpdate>}
+
+    export const useUpdateAdminChallengeReward = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminChallengeReward>>, TError,UpdateAdminChallengeRewardMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateAdminChallengeReward>>,
+        TError,
+        UpdateAdminChallengeRewardMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateAdminChallengeRewardMutationOptions(options));
+    }
+
+export const getClearAdminChallengeRewardUrl = (challengeId: string,) => {
+
+
+
+
+  return `/api/admin/challenges/${challengeId}/reward`
+}
+
+export const clearAdminChallengeReward = async (challengeId: string, options?: Parameters<typeof customFetch>[1]): Promise<Challenge> => {
+
+  return customFetch<Challenge>(getClearAdminChallengeRewardUrl(challengeId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getClearAdminChallengeRewardMutationKey = () => ['clearAdminChallengeReward'] as const;
+
+export const getClearAdminChallengeRewardMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof clearAdminChallengeReward>>, TError,ClearAdminChallengeRewardMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof clearAdminChallengeReward>>, TError,ClearAdminChallengeRewardMutationVariables, TContext> => {
+
+const mutationKey = getClearAdminChallengeRewardMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof clearAdminChallengeReward>>, ClearAdminChallengeRewardMutationVariables> = (props) => {
+          const {challengeId} = props ?? {};
+
+          return  clearAdminChallengeReward(challengeId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ClearAdminChallengeRewardMutationResult = NonNullable<Awaited<ReturnType<typeof clearAdminChallengeReward>>>
+
+    export type ClearAdminChallengeRewardMutationError = ErrorType<void>
+    export type ClearAdminChallengeRewardMutationVariables = {challengeId: string}
+
+    export const useClearAdminChallengeReward = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof clearAdminChallengeReward>>, TError,ClearAdminChallengeRewardMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof clearAdminChallengeReward>>,
+        TError,
+        ClearAdminChallengeRewardMutationVariables,
+        TContext
+      > => {
+      return useMutation(getClearAdminChallengeRewardMutationOptions(options));
     }
 
 export const getListAdminChallengesUrl = () => {

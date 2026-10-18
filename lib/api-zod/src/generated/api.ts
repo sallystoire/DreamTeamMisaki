@@ -299,6 +299,32 @@ export const UpdateMemberRoleResponse = zod.object({
 })
 
 
+export const createAdminTeamBodyNameMin = 2;
+export const createAdminTeamBodyNameMax = 32;
+
+export const createAdminTeamBodyCaptainDiscordIdRegExp = new RegExp('^[0-9]{17,20}$');
+export const createAdminTeamBodyJoinCodeMin = 4;
+export const createAdminTeamBodyJoinCodeMax = 32;
+
+
+export const createAdminTeamBodyJoinCodeRegExp = new RegExp('^[A-Za-z0-9-]+$');
+
+
+export const CreateAdminTeamBody = zod.object({
+  "name": zod.string().min(createAdminTeamBodyNameMin).max(createAdminTeamBodyNameMax),
+  "captainDiscordId": zod.string().regex(createAdminTeamBodyCaptainDiscordIdRegExp).optional(),
+  "joinCode": zod.string().min(createAdminTeamBodyJoinCodeMin).max(createAdminTeamBodyJoinCodeMax).regex(createAdminTeamBodyJoinCodeRegExp).optional()
+})
+
+export const CreateAdminTeamResponse = zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "captainDiscordId": zod.string(),
+  "joinCode": zod.string().nullable(),
+  "createdAt": zod.coerce.date()
+})
+
+
 /**
  * @summary List all active teams for administration
  */
@@ -395,6 +421,54 @@ export const RemoveAdminTeamMemberParams = zod.object({
 })
 
 export const RemoveAdminTeamMemberResponse = zod.void()
+
+
+export const UpdateAdminChallengeRewardParams = zod.object({
+  "challengeId": zod.coerce.string().uuid()
+})
+
+export const updateAdminChallengeRewardBodyRewardMax = 120;
+
+
+
+export const UpdateAdminChallengeRewardBody = zod.object({
+  "reward": zod.string().max(updateAdminChallengeRewardBodyRewardMax)
+})
+
+export const UpdateAdminChallengeRewardResponse = zod.object({
+  "id": zod.string().uuid(),
+  "title": zod.string(),
+  "reward": zod.string(),
+  "startsAt": zod.coerce.date(),
+  "endsAt": zod.coerce.date(),
+  "status": zod.enum(['ACTIVE', 'COMPLETED']),
+  "drawStatus": zod.enum(['PENDING', 'DRAWN', 'NO_ELIGIBLE_MEMBERS']),
+  "winningTeamId": zod.string().uuid().nullable(),
+  "winningTeamName": zod.string().nullable(),
+  "winnerDiscordId": zod.string().nullable(),
+  "winnerUsername": zod.string().nullable(),
+  "winnerAvatarUrl": zod.string().nullable()
+})
+
+
+export const ClearAdminChallengeRewardParams = zod.object({
+  "challengeId": zod.coerce.string().uuid()
+})
+
+export const ClearAdminChallengeRewardResponse = zod.object({
+  "id": zod.string().uuid(),
+  "title": zod.string(),
+  "reward": zod.string(),
+  "startsAt": zod.coerce.date(),
+  "endsAt": zod.coerce.date(),
+  "status": zod.enum(['ACTIVE', 'COMPLETED']),
+  "drawStatus": zod.enum(['PENDING', 'DRAWN', 'NO_ELIGIBLE_MEMBERS']),
+  "winningTeamId": zod.string().uuid().nullable(),
+  "winningTeamName": zod.string().nullable(),
+  "winnerDiscordId": zod.string().nullable(),
+  "winnerUsername": zod.string().nullable(),
+  "winnerAvatarUrl": zod.string().nullable()
+})
 
 
 /**

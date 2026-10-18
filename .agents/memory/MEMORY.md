@@ -1,0 +1,1 @@
+- [Browser test isolation](browser-test-isolation.md) — mutation tests must target fixtures; request interception alone does not protect existing data.

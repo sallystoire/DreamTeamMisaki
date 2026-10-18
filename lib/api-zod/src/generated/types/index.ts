@@ -7,11 +7,13 @@
  */
 
 export * from './adminAddTeamMemberInput';
+export * from './adminTeamInput';
 export * from './captainApplicationInput';
 export * from './captainApplicationStatus';
 export * from './captainApplicationStatusStatus';
 export * from './challenge';
 export * from './challengeInput';
+export * from './challengeRewardUpdate';
 export * from './challengeStatus';
 export * from './dashboardResponse';
 export * from './drawStatus';

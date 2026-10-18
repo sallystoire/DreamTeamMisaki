@@ -1,5 +1,6 @@
 import { randomBytes, timingSafeEqual } from "node:crypto";
 import { Router, type IRouter, type Request, type Response } from "express";
+import { misakiGuildId } from "../lib/discordConfig";
 import { eq } from "drizzle-orm";
 import {
   db,
@@ -86,7 +87,7 @@ router.get("/auth/discord/callback", async (req, res): Promise<void> => {
   const callbackUrl = redirectUri();
   const clientId = process.env.DISCORD_CLIENT_ID;
   const clientSecret = process.env.DISCORD_CLIENT_SECRET;
-  const guildId = process.env.DISCORD_GUILD_ID;
+  const guildId = misakiGuildId();
 
   res.clearCookie(STATE_COOKIE, cookieOptions(req, 0));
   if (

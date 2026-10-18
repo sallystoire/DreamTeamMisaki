@@ -2,6 +2,7 @@ import { ChannelType, OverwriteType, PermissionFlagsBits } from "discord.js";
 import { SubmitCaptainApplicationBody } from "@workspace/api-zod";
 import { configuredAdminIds } from "../middlewares/dreamteam-auth";
 import { getDiscordBot } from "./voiceBot";
+import { recruitmentGuildId } from "./discordConfig";
 
 export const recruitmentInvite = "https://discord.gg/CNKn4X4jJ";
 type CaptainApplicationInput = ReturnType<typeof SubmitCaptainApplicationBody.parse>;
@@ -9,9 +10,13 @@ type CaptainApplicationInput = ReturnType<typeof SubmitCaptainApplicationBody.pa
 export async function deliverCaptainApplication(discordId: string, answers: CaptainApplicationInput) {
   const bot = getDiscordBot();
   if (!bot?.isReady()) throw new Error("Recruitment bot is not connected");
-  const invite = await bot.fetchInvite(recruitmentInvite);
-  if (!invite.guild) throw new Error("Recruitment invite has no guild");
-  const guild = await bot.guilds.fetch(invite.guild.id);
+  let targetGuildId = recruitmentGuildId();
+  if (!targetGuildId) {
+    const invite = await bot.fetchInvite(recruitmentInvite);
+    if (!invite.guild) throw new Error("Recruitment invite has no guild");
+    targetGuildId = invite.guild.id;
+  }
+  const guild = await bot.guilds.fetch(targetGuildId);
   const marker = `misaki-captain:${discordId}`;
   const channels = await guild.channels.fetch();
   let channel = channels.find((item) => item?.type === ChannelType.GuildText && item.topic === marker);

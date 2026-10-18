@@ -5,13 +5,15 @@ import { db, dreamUsersTable, dreamVoiceSessionsTable } from "@workspace/db";
 import { logger } from "./logger";
 import { isPublicVoiceChannel } from "./publicVoice";
 import { handleTeamInteraction, registerTeamCommand } from "./teamCommand";
+import { misakiGuildId } from "./discordConfig";
+import { handleJoinTeamInteraction, registerJoinTeamCommand } from "./joinTeamCommand";
 
 let client: Client | undefined;
 
 export function getDiscordBot(): Client | undefined { return client; }
 
 export function isVoiceBotConnected(): boolean {
-  return Boolean(client?.isReady() && client.guilds.cache.has(process.env.DISCORD_GUILD_ID ?? ""));
+  return Boolean(client?.isReady() && client.guilds.cache.has(misakiGuildId() ?? ""));
 }
 
 async function startTrackedSession(
@@ -108,7 +110,7 @@ export async function updateActiveVoiceTeam(
 
 export async function syncMemberVoiceState(discordId: string): Promise<void> {
   if (!client?.isReady()) return;
-  const guildId = process.env.DISCORD_GUILD_ID;
+  const guildId = misakiGuildId();
   if (!guildId) return;
 
   const guild = client.guilds.cache.get(guildId);
@@ -133,7 +135,7 @@ function queueVoiceSync(discordId: string): Promise<void> {
 
 export function startVoiceBot(): void {
   const token = process.env.DISCORD_BOT_TOKEN;
-  const guildId = process.env.DISCORD_GUILD_ID;
+  const guildId = misakiGuildId();
   if (!token) {
     logger.warn(
       "Discord bot is waiting for DISCORD_BOT_TOKEN",
@@ -154,7 +156,7 @@ export function startVoiceBot(): void {
       logger.info("Discord OAuth application matches the connected bot");
     }
     if (!guildId) {
-      logger.warn("Voice tracking is waiting for DISCORD_GUILD_ID; recruitment bot remains available");
+      logger.warn("Voice tracking is waiting for DISCORD_MISAKI_GUILD_ID (or DISCORD_GUILD_ID); recruitment bot remains available");
       return;
     }
 
@@ -180,6 +182,7 @@ export function startVoiceBot(): void {
     }
     try {
       await registerTeamCommand(readyClient, guildId);
+      await registerJoinTeamCommand(readyClient, guildId);
     } catch (error) {
       logger.error({ err: error }, "Could not register /team; invite the bot with bot and applications.commands scopes");
     }
@@ -187,6 +190,18 @@ export function startVoiceBot(): void {
 
   client.on(Events.InteractionCreate, interaction => {
     void handleTeamInteraction(interaction, guildId);
+    void handleJoinTeamInteraction(interaction, guildId);
+  });
+
+  // Installing the bot after startup should not require a manual restart.
+  client.on(Events.GuildCreate, guild => {
+    if (!client?.isReady() || guild.id !== guildId) return;
+    const readyClient = client;
+    void (async () => {
+      await registerTeamCommand(readyClient, guild.id);
+      await registerJoinTeamCommand(readyClient, guild.id);
+      for (const state of guild.voiceStates.cache.values()) await queueVoiceSync(state.id);
+    })().catch((error: unknown) => logger.error({ err: error }, "Could not initialize Misaki after bot installation"));
   });
 
   client.on(Events.VoiceStateUpdate, (oldState, newState) => {
