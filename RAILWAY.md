@@ -14,6 +14,12 @@ Le service Railway sert le site, l’API et le bot Discord dans un même process
 
 Le bot doit être installé sur les deux serveurs. Une installation sur le recrutement ne donne pas accès à Misaki. Les commandes sont automatiquement enregistrées aussi lors de l’ajout du bot sur Misaki, sans redémarrage manuel.
 
+### Version de pnpm et installation reproductible
+
+Le champ `packageManager` du `package.json` racine fixe pnpm à `10.26.1`. Railway/Railpack doit utiliser cette version : les réglages `overrides` sont dans `pnpm-workspace.yaml`, et une ancienne version de pnpm peut les interpréter différemment et refuser le lockfile.
+
+Conserver `--frozen-lockfile` pendant le déploiement. Après un changement de dépendances, régénérer le lockfile avec cette même version de pnpm et envoyer ensemble `package.json`, `pnpm-workspace.yaml` et `pnpm-lock.yaml` au dépôt utilisé par Railway. La racine du service doit être celle du monorepo, pas un sous-dossier `artifacts/`.
+
 Les Admin+ disposent d’un formulaire de création d’équipe, y compris pour eux-mêmes sans perdre leurs droits. Ils peuvent modifier ou retirer la récompense d’un défi sans supprimer son historique ni ses scores. Les données fictives de démonstration sont exclusivement côté navigateur pour les visiteurs déconnectés : elles ne sont jamais insérées dans la base.
 
 Pour utiliser un domaine personnel, ajouter Custom Domain dans Public Networking, puis copier les enregistrements CNAME et TXT indiqués par Railway chez le fournisseur du domaine. Attendre la validation HTTPS, puis remplacer l’URL de retour OAuth des deux côtés.
