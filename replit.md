@@ -1,15 +1,15 @@
-# [Project name]
+# DreamTeam Misaki
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Site privé de compétition hebdomadaire : connexion Discord, équipes de capitaines, classement vocal et administration réservée aux Admin+.
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+- `pnpm --filter @workspace/api-server run dev` — API Discord, bot vocal et endpoints (port fourni par le workflow)
+- `pnpm --filter @workspace/dreamteam-misaki run dev` — interface React
+- `pnpm run typecheck` — vérification TypeScript complète
+- `pnpm --filter @workspace/api-spec run codegen` — régénère les hooks React et schémas Zod depuis OpenAPI
+- `pnpm --filter @workspace/db run push` — applique le schéma PostgreSQL de développement
+- Configuration nécessaire : `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET` (secret), `DISCORD_GUILD_ID`, `DISCORD_BOT_TOKEN` (secret), `DISCORD_VOICE_CHANNEL_IDS`, `ADMIN_DISCORD_IDS`. `DISCORD_REDIRECT_URI` est optionnel en développement et requis si le domaine déployé ne correspond pas au domaine de développement.
 
 ## Stack
 
@@ -19,26 +19,40 @@ _Replace the heading above with the project's name, and this line with one sente
 - Validation: Zod (`zod/v4`), `drizzle-zod`
 - API codegen: Orval (from OpenAPI spec)
 - Build: esbuild (CJS bundle)
+- Discord: OAuth2 pour l’identité, discord.js Gateway pour les changements de salons vocaux
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/dreamteam-misaki/` — application web React/Vite.
+- `artifacts/api-server/src/routes/auth.ts` — connexion Discord et sessions.
+- `artifacts/api-server/src/routes/dreamteam.ts` — équipes, rôles, administration et défis.
+- `artifacts/api-server/src/lib/voiceBot.ts` — collecte des événements vocaux Discord.
+- `artifacts/api-server/src/lib/challengeService.ts` — classement, calcul des heures et tirage.
+- `lib/db/src/schema/dreamteam.ts` — schéma PostgreSQL.
+- `lib/api-spec/openapi.yaml` — contrat source des réponses et hooks.
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- Discord ID est l’identifiant unique d’un compte. Les jetons OAuth ne sont pas conservés; la base ne stocke qu’un hash du cookie de session.
+- Les permissions sont contrôlées par l’API, pas seulement par les pages React. Les Admin+ initiaux sont désignés par `ADMIN_DISCORD_IDS`.
+- Le site n’importe pas les 200 000 membres du serveur : seuls les membres qui se connectent sont inscrits au roster.
+- Le bot comptabilise uniquement la durée en vocal dans les salons explicitement configurés; aucun audio n’est enregistré.
+- La clôture d’un défi et le tirage pondéré sont exécutés côté serveur; le capitaine éligible possède deux tickets.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+Les membres se connectent via Discord et rejoignent une équipe par code. Les capitaines peuvent gérer leur équipe; les Admin+ attribuent les rôles, gèrent les équipes et lancent des défis de sept jours. Le site suit les heures vocales et conserve l’historique des défis.
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+Pas de préférence générale à noter pour le moment.
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- Ajouter l’URL de retour OAuth du site dans le portail développeur Discord; définir `DISCORD_REDIRECT_URI` pour le domaine de production.
+- `DISCORD_VOICE_CHANNEL_IDS` accepte une liste d’identifiants de salons autorisés, séparés par des virgules.
+- Après une modification de `lib/api-spec/openapi.yaml`, lancer le codegen avant de vérifier les applications consommatrices.
+- Après une modification du schéma Drizzle, lancer `pnpm --filter @workspace/db run push` en développement.
 
 ## Pointers
 

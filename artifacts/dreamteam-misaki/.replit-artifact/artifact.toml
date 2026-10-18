@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "DreamTeam Misaki"
+description = "Un site de défi hebdomadaire pour les équipes du serveur Discord Misaki. Les membres se connectent avec Discord, rejoignent l’équipe d’un capitaine, suivent l’activité vocale et consultent le classement; les Admin+ gèrent les équipes, rôles et défis."
+version = "1.0.0"
+id = "artifacts/dreamteam-misaki"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 20629
+
+[services.development]
+run = "pnpm --filter @workspace/dreamteam-misaki run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/dreamteam-misaki", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/dreamteam-misaki/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "20629"
+BASE_PATH = "/"

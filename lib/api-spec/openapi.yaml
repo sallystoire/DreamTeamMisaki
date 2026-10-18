@@ -3,13 +3,17 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: DreamTeam Misaki API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: dreamteam
+    description: Challenge dashboard and member team actions
+  - name: admin
+    description: Administrator actions
 paths:
   /healthz:
     get:
@@ -24,7 +28,317 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /dreamteam/dashboard:
+    get:
+      operationId: getDreamTeamDashboard
+      tags: [dreamteam]
+      summary: Get the active challenge and live team race
+      responses:
+        "200":
+          description: Current challenge, leaderboard, and bot status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardResponse"
+  /me/team:
+    get:
+      operationId: getMyTeam
+      tags: [dreamteam]
+      summary: Get the signed-in member's team and roster
+      responses:
+        "200":
+          description: Team dashboard, or a null team if the member has not joined
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MyTeamResponse"
+        "401":
+          description: Sign-in required
+  /teams/join:
+    post:
+      operationId: joinTeam
+      tags: [dreamteam]
+      summary: Join a captain's team with an invitation code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JoinTeamInput"
+      responses:
+        "200":
+          description: Team joined
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Team"
+        "400":
+          description: Invalid code or membership conflict
+        "401":
+          description: Sign-in required
+  /teams/me:
+    patch:
+      operationId: renameMyTeam
+      tags: [dreamteam]
+      summary: Rename the signed-in captain's team
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TeamNameUpdate"
+      responses:
+        "200":
+          description: Updated team
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Team"
+        "401":
+          description: Sign-in required
+        "403":
+          description: Captain access required
+  /teams/me/members/{discordId}:
+    delete:
+      operationId: removeMyTeamMember
+      tags: [dreamteam]
+      summary: Remove a member from the captain's team
+      parameters:
+        - $ref: "#/components/parameters/DiscordId"
+      responses:
+        "204":
+          description: Member removed
+        "401":
+          description: Sign-in required
+        "403":
+          description: Captain access required
+        "404":
+          description: Team member not found
+  /admin/members:
+    get:
+      operationId: listAdminMembers
+      tags: [admin]
+      summary: Search members who have signed in to the site
+      parameters:
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: role
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/SiteRole"
+      responses:
+        "200":
+          description: Registered site members
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemberListResponse"
+        "401":
+          description: Sign-in required
+        "403":
+          description: Admin+ access required
+  /admin/members/{discordId}/role:
+    patch:
+      operationId: updateMemberRole
+      tags: [admin]
+      summary: Assign a site role to a registered member
+      parameters:
+        - $ref: "#/components/parameters/DiscordId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MemberRoleUpdate"
+      responses:
+        "200":
+          description: Updated member
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Member"
+        "401":
+          description: Sign-in required
+        "403":
+          description: Admin+ access required
+        "404":
+          description: Member not found
+  /admin/teams:
+    get:
+      operationId: listAdminTeams
+      tags: [admin]
+      summary: List all active teams for administration
+      responses:
+        "200":
+          description: Teams ordered by current challenge score
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TeamProgress"
+        "401":
+          description: Sign-in required
+        "403":
+          description: Admin+ access required
+  /admin/teams/{teamId}:
+    patch:
+      operationId: updateAdminTeam
+      tags: [admin]
+      summary: Rename an active team
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TeamNameUpdate"
+      responses:
+        "200":
+          description: Updated team
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Team"
+        "401":
+          description: Sign-in required
+        "403":
+          description: Admin+ access required
+        "404":
+          description: Team not found
+    delete:
+      operationId: archiveAdminTeam
+      tags: [admin]
+      summary: Archive a team while preserving challenge history
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Team archived
+        "401":
+          description: Sign-in required
+        "403":
+          description: Admin+ access required
+        "404":
+          description: Team not found
+  /admin/teams/{teamId}/members:
+    post:
+      operationId: addAdminTeamMember
+      tags: [admin]
+      summary: Add a registered member to a team
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminAddTeamMemberInput"
+      responses:
+        "200":
+          description: Updated member
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Member"
+        "401":
+          description: Sign-in required
+        "403":
+          description: Admin+ access required
+        "404":
+          description: Team or member not found
+  /admin/teams/{teamId}/members/{discordId}:
+    delete:
+      operationId: removeAdminTeamMember
+      tags: [admin]
+      summary: Remove a member from a team
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: "#/components/parameters/DiscordId"
+      responses:
+        "204":
+          description: Member removed
+        "401":
+          description: Sign-in required
+        "403":
+          description: Admin+ access required
+        "404":
+          description: Team member not found
+  /admin/challenges:
+    get:
+      operationId: listAdminChallenges
+      tags: [admin]
+      summary: List current and previous weekly challenges
+      responses:
+        "200":
+          description: Challenge history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Challenge"
+        "401":
+          description: Sign-in required
+        "403":
+          description: Admin+ access required
+    post:
+      operationId: createAdminChallenge
+      tags: [admin]
+      summary: Start a new seven-day challenge
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChallengeInput"
+      responses:
+        "201":
+          description: New challenge
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Challenge"
+        "400":
+          description: Another challenge is still active
+        "401":
+          description: Sign-in required
+        "403":
+          description: Admin+ access required
 components:
+  parameters:
+    DiscordId:
+      name: discordId
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: "^[0-9]{17,20}$"
   schemas:
     HealthStatus:
       type: object
@@ -33,4 +347,149 @@ components:
           type: string
       required:
         - status
+    SiteRole:
+      type: string
+      enum: [MEMBER, CAPTAIN, ADMIN_PLUS]
+    ChallengeStatus:
+      type: string
+      enum: [ACTIVE, COMPLETED]
+    DrawStatus:
+      type: string
+      enum: [PENDING, DRAWN, NO_ELIGIBLE_MEMBERS]
+    Team:
+      type: object
+      required: [id, name, captainDiscordId, joinCode, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        captainDiscordId: { type: string }
+        joinCode: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+    Member:
+      type: object
+      required:
+        - discordId
+        - username
+        - avatarUrl
+        - role
+        - teamId
+        - teamName
+        - voiceHours
+        - isInVoice
+        - createdAt
+      properties:
+        discordId: { type: string }
+        username: { type: string }
+        avatarUrl: { type: ["string", "null"] }
+        role: { $ref: "#/components/schemas/SiteRole" }
+        teamId: { type: ["string", "null"], format: uuid }
+        teamName: { type: ["string", "null"] }
+        voiceHours: { type: number, format: double }
+        isInVoice: { type: boolean }
+        createdAt: { type: string, format: date-time }
+    TeamProgress:
+      type: object
+      required:
+        - id
+        - name
+        - captainDiscordId
+        - captainName
+        - memberCount
+        - voiceHours
+        - activeMembers
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        captainDiscordId: { type: string }
+        captainName: { type: string }
+        memberCount: { type: integer }
+        voiceHours: { type: number, format: double }
+        activeMembers: { type: integer }
+    Challenge:
+      type: object
+      required:
+        - id
+        - title
+        - reward
+        - startsAt
+        - endsAt
+        - status
+        - drawStatus
+        - winningTeamId
+        - winningTeamName
+        - winnerDiscordId
+        - winnerUsername
+        - winnerAvatarUrl
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        reward: { type: string }
+        startsAt: { type: string, format: date-time }
+        endsAt: { type: string, format: date-time }
+        status: { $ref: "#/components/schemas/ChallengeStatus" }
+        drawStatus: { $ref: "#/components/schemas/DrawStatus" }
+        winningTeamId: { type: ["string", "null"], format: uuid }
+        winningTeamName: { type: ["string", "null"] }
+        winnerDiscordId: { type: ["string", "null"] }
+        winnerUsername: { type: ["string", "null"] }
+        winnerAvatarUrl: { type: ["string", "null"] }
+    DashboardResponse:
+      type: object
+      required: [challenge, secondsRemaining, leaderboard, botConnected, updatedAt]
+      properties:
+        challenge:
+          anyOf:
+            - $ref: "#/components/schemas/Challenge"
+            - type: "null"
+        secondsRemaining: { type: integer }
+        leaderboard:
+          type: array
+          items: { $ref: "#/components/schemas/TeamProgress" }
+        botConnected: { type: boolean }
+        updatedAt: { type: string, format: date-time }
+    MyTeamResponse:
+      type: object
+      required: [team, members]
+      properties:
+        team:
+          anyOf:
+            - $ref: "#/components/schemas/Team"
+            - type: "null"
+        members:
+          type: array
+          items: { $ref: "#/components/schemas/Member" }
+    MemberListResponse:
+      type: object
+      required: [items, total]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Member" }
+        total: { type: integer }
+    JoinTeamInput:
+      type: object
+      required: [code]
+      properties:
+        code: { type: string, minLength: 4, maxLength: 32 }
+    TeamNameUpdate:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 2, maxLength: 32 }
+    MemberRoleUpdate:
+      type: object
+      required: [role]
+      properties:
+        role: { $ref: "#/components/schemas/SiteRole" }
+    AdminAddTeamMemberInput:
+      type: object
+      required: [discordId]
+      properties:
+        discordId: { type: string, pattern: "^[0-9]{17,20}$" }
+    ChallengeInput:
+      type: object
+      required: [title, reward]
+      properties:
+        title: { type: string, minLength: 3, maxLength: 80 }
+        reward: { type: string, minLength: 2, maxLength: 120 }
 

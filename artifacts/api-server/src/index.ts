@@ -1,5 +1,7 @@
 import app from "./app";
 import { logger } from "./lib/logger";
+import { finalizeExpiredChallenges } from "./lib/challengeService";
+import { startVoiceBot } from "./lib/voiceBot";
 
 const rawPort = process.env["PORT"];
 
@@ -14,6 +16,23 @@ const port = Number(rawPort);
 if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
+
+startVoiceBot();
+void finalizeExpiredChallenges().catch((error: unknown) => {
+  logger.error(
+    { message: error instanceof Error ? error.message : "unknown error" },
+    "Could not finalize expired DreamTeam challenges on startup",
+  );
+});
+const challengeTimer = setInterval(() => {
+  void finalizeExpiredChallenges().catch((error: unknown) => {
+    logger.error(
+      { message: error instanceof Error ? error.message : "unknown error" },
+      "Could not finalize expired DreamTeam challenges",
+    );
+  });
+}, 1_000);
+challengeTimer.unref();
 
 app.listen(port, (err) => {
   if (err) {
