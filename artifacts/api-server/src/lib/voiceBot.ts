@@ -4,6 +4,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { db, dreamUsersTable, dreamVoiceSessionsTable } from "@workspace/db";
 import { logger } from "./logger";
 import { isPublicVoiceChannel } from "./publicVoice";
+import { handleTeamInteraction, registerTeamCommand } from "./teamCommand";
 
 let client: Client | undefined;
 
@@ -147,6 +148,11 @@ export function startVoiceBot(): void {
   client.on(Events.ClientReady, async (readyClient) => {
     await stopAllTrackedSessions();
     logger.info({ guildId: guildId ?? null }, "Discord bot connected");
+    if (process.env.DISCORD_CLIENT_ID !== readyClient.user.id) {
+      logger.error("DISCORD_CLIENT_ID does not match the connected bot application. OAuth must use the same Discord application.");
+    } else {
+      logger.info("Discord OAuth application matches the connected bot");
+    }
     if (!guildId) {
       logger.warn("Voice tracking is waiting for DISCORD_GUILD_ID; recruitment bot remains available");
       return;
@@ -172,6 +178,15 @@ export function startVoiceBot(): void {
         "Could not sync existing Discord voice states",
       );
     }
+    try {
+      await registerTeamCommand(readyClient, guildId);
+    } catch (error) {
+      logger.error({ err: error }, "Could not register /team; invite the bot with bot and applications.commands scopes");
+    }
+  });
+
+  client.on(Events.InteractionCreate, interaction => {
+    void handleTeamInteraction(interaction, guildId);
   });
 
   client.on(Events.VoiceStateUpdate, (oldState, newState) => {
