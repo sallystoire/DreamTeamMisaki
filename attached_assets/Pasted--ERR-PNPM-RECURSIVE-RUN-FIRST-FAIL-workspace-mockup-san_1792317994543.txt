@@ -1,0 +1,53 @@
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/mockup-sandbox@2.0.0 dev: `vite dev`
+Exit status 1
+> @workspace/mockup-sandbox@2.0.0 dev /app/artifacts/mockup-sandbox
+> vite dev
+failed to load config from /app/artifacts/mockup-sandbox/vite.config.ts
+error when starting dev server:
+Error: BASE_PATH environment variable is required but was not provided.
+    at file:///app/artifacts/mockup-sandbox/node_modules/.vite-temp/vite.config.ts.timestamp-1792317402175-ebfd6c34d7e4e.mjs:155:9
+    at ModuleJob.run (node:internal/modules/esm/module_job:561:25)
+    at async node:internal/modules/esm/loader:647:26
+    at async loadConfigFromBundledFile (file:///app/node_modules/.pnpm/vite@7.3.6_@types+node@25.9.6_jiti@2.7.0_lightningcss@1.32.0_tsx@4.23.13_yaml@2.9.0/node_modules/vite/dist/node/chunks/config.js:35996:12)
+    at async bundleAndLoadConfigFile (file:///app/node_modules/.pnpm/vite@7.3.6_@types+node@25.9.6_jiti@2.7.0_lightningcss@1.32.0_tsx@4.23.13_yaml@2.9.0/node_modules/vite/dist/node/chunks/config.js:35884:17)
+    at async loadConfigFromFile (file:///app/node_modules/.pnpm/vite@7.3.6_@types+node@25.9.6_jiti@2.7.0_lightningcss@1.32.0_tsx@4.23.13_yaml@2.9.0/node_modules/vite/dist/node/chunks/config.js:35851:42)
+    at async resolveConfig (file:///app/node_modules/.pnpm/vite@7.3.6_@types+node@25.9.6_jiti@2.7.0_lightningcss@1.32.0_tsx@4.23.13_yaml@2.9.0/node_modules/vite/dist/node/chunks/config.js:35500:22)
+    at async _createServer (file:///app/node_modules/.pnpm/vite@7.3.6_@types+node@25.9.6_jiti@2.7.0_lightningcss@1.32.0_tsx@4.23.13_yaml@2.9.0/node_modules/vite/dist/node/chunks/config.js:25441:67)
+    at async CAC.<anonymous> (file:///app/node_modules/.pnpm/vite@7.3.6_@types+node@25.9.6_jiti@2.7.0_lightningcss@1.32.0_tsx@4.23.13_yaml@2.9.0/node_modules/vite/dist/node/cli.js:572:18)
+> @workspace/mockup-sandbox@2.0.0 dev /app/artifacts/mockup-sandbox
+> vite dev
+    at file:///app/artifacts/mockup-sandbox/node_modules/.vite-temp/vite.config.ts.timestamp-1792317403942-225c6176d7f7.mjs:155:9
+Error: BASE_PATH environment variable is required but was not provided.
+failed to load config from /app/artifacts/mockup-sandbox/vite.config.ts
+    at ModuleJob.run (node:internal/modules/esm/module_job:561:25)
+error when starting dev server:
+    at async node:internal/modules/esm/loader:647:26
+    at async loadConfigFromBundledFile (file:///app/node_modules/.pnpm/vite@7.3.6_@types+node@25.9.6_jiti@2.7.0_lightningcss@1.32.0_tsx@4.23.13_yaml@2.9.0/node_modules/vite/dist/node/chunks/config.js:35996:12)
+    at async loadConfigFromFile (file:///app/node_modules/.pnpm/vite@7.3.6_@types+node@25.9.6_jiti@2.7.0_lightningcss@1.32.0_tsx@4.23.13_yaml@2.9.0/node_modules/vite/dist/node/chunks/config.js:35851:42)
+    at async bundleAndLoadConfigFile (file:///app/node_modules/.pnpm/vite@7.3.6_@types+node@25.9.6_jiti@2.7.0_lightningcss@1.32.0_tsx@4.23.13_yaml@2.9.0/node_modules/vite/dist/node/chunks/config.js:35884:17)
+    at async resolveConfig (file:///app/node_modules/.pnpm/vite@7.3.6_@types+node@25.9.6_jiti@2.7.0_lightningcss@1.32.0_tsx@4.23.13_yaml@2.9.0/node_modules/vite/dist/node/chunks/config.js:35500:22)
+/app/artifacts/mockup-sandbox:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/mockup-sandbox@2.0.0 dev: `vite dev`
+Exit status 1
+    at async _createServer (file:///app/node_modules/.pnpm/vite@7.3.6_@types+node@25.9.6_jiti@2.7.0_lightningcss@1.32.0_tsx@4.23.13_yaml@2.9.0/node_modules/vite/dist/node/chunks/config.js:25441:67)
+    at async CAC.<anonymous> (file:///app/node_modules/.pnpm/vite@7.3.6_@types+node@25.9.6_jiti@2.7.0_lightningcss@1.32.0_tsx@4.23.13_yaml@2.9.0/node_modules/vite/dist/node/cli.js:572:18)
+/app/artifacts/mockup-sandbox:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/mockup-sandbox@2.0.0 dev: `vite dev`
+Exit status 1
+> @workspace/mockup-sandbox@2.0.0 dev /app/artifacts/mockup-sandbox
+> vite dev
+failed to load config from /app/artifacts/mockup-sandbox/vite.config.ts
+error when starting dev server:
+Error: BASE_PATH environment variable is required but was not provided.
+    at file:///app/artifacts/mockup-sandbox/node_modules/.vite-temp/vite.config.ts.timestamp-1792317405754-f2d05c6599265.mjs:155:9
+    at ModuleJob.run (node:internal/modules/esm/module_job:561:25)
+    at async node:internal/modules/esm/loader:647:26
+    at async loadConfigFromBundledFile (file:///app/node_modules/.pnpm/vite@7.3.6_@types+node@25.9.6_jiti@2.7.0_lightningcss@1.32.0_tsx@4.23.13_yaml@2.9.0/node_modules/vite/dist/node/chunks/config.js:35996:12)
+    at async bundleAndLoadConfigFile (file:///app/node_modules/.pnpm/vite@7.3.6_@types+node@25.9.6_jiti@2.7.0_lightningcss@1.32.0_tsx@4.23.13_yaml@2.9.0/node_modules/vite/dist/node/chunks/config.js:35884:17)
+    at async loadConfigFromFile (file:///app/node_modules/.pnpm/vite@7.3.6_@types+node@25.9.6_jiti@2.7.0_lightningcss@1.32.0_tsx@4.23.13_yaml@2.9.0/node_modules/vite/dist/node/chunks/config.js:35851:42)
+    at async resolveConfig (file:///app/node_modules/.pnpm/vite@7.3.6_@types+node@25.9.6_jiti@2.7.0_lightningcss@1.32.0_tsx@4.23.13_yaml@2.9.0/node_modules/vite/dist/node/chunks/config.js:35500:22)
+    at async _createServer (file:///app/node_modules/.pnpm/vite@7.3.6_@types+node@25.9.6_jiti@2.7.0_lightningcss@1.32.0_tsx@4.23.13_yaml@2.9.0/node_modules/vite/dist/node/chunks/config.js:25441:67)
+    at async CAC.<anonymous> (file:///app/node_modules/.pnpm/vite@7.3.6_@types+node@25.9.6_jiti@2.7.0_lightningcss@1.32.0_tsx@4.23.13_yaml@2.9.0/node_modules/vite/dist/node/cli.js:572:18)
+/app/artifacts/mockup-sandbox:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/mockup-sandbox@2.0.0 dev: `vite dev`
+Exit status 1

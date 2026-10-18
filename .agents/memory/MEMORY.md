@@ -1,2 +1,3 @@
 - [Browser test isolation](browser-test-isolation.md) — mutation tests must target fixtures; request interception alone does not protect existing data.
 - [Railpack toolchain verification](railpack-toolchain.md) — a passing local frozen install does not verify the builder’s pnpm version; inspect the generated build plan.
+- [Production schema safety](production-schema-safety.md) — bootstrap new databases only; an existing partial schema must not trigger an automatic reset.

@@ -1,6 +1,7 @@
 import { randomBytes, timingSafeEqual } from "node:crypto";
 import { Router, type IRouter, type Request, type Response } from "express";
 import { misakiGuildId } from "../lib/discordConfig";
+import { discordRedirectUri } from "../lib/discordOAuthConfig";
 import { eq } from "drizzle-orm";
 import {
   db,
@@ -38,17 +39,6 @@ function cookieOptions(req: Request, maxAge: number) {
   };
 }
 
-function redirectUri(): string | null {
-  const configured = process.env.DISCORD_REDIRECT_URI?.trim();
-  if (configured) return configured;
-  const developmentDomain = process.env.REPLIT_DEV_DOMAIN?.trim();
-  if (developmentDomain) {
-    const host = developmentDomain.replace(/^https?:\/\//, "").replace(/\/+$/, "");
-    return `https://${host}/api/auth/discord/callback`;
-  }
-  return null;
-}
-
 function clearAuthCookies(
   req: Request,
   res: Response,
@@ -58,12 +48,17 @@ function clearAuthCookies(
 }
 
 router.get("/auth/discord/login", (req, res): void => {
-  const clientId = process.env.DISCORD_CLIENT_ID;
-  const callbackUrl = redirectUri();
-  if (!clientId || !callbackUrl) {
+  const clientId = process.env.DISCORD_CLIENT_ID?.trim();
+  const callbackUrl = discordRedirectUri();
+  const missing = [
+    !clientId || !/^[0-9]{17,20}$/.test(clientId) ? "DISCORD_CLIENT_ID" : null,
+    !process.env.DISCORD_CLIENT_SECRET?.trim() ? "DISCORD_CLIENT_SECRET" : null,
+    !misakiGuildId() ? "DISCORD_MISAKI_GUILD_ID" : null,
+    !callbackUrl ? "DISCORD_REDIRECT_URI (ou RAILWAY_PUBLIC_DOMAIN)" : null,
+  ].filter(Boolean);
+  if (missing.length || !clientId || !callbackUrl) {
     res.status(503).json({
-      error:
-        "La connexion Discord n’est pas configurée. Il manque l’identifiant de l’application ou son URL de retour.",
+      error: `La connexion Discord n’est pas configurée : vérifie ${missing.join(", ")} sur le service hébergeant l’API.`,
     });
     return;
   }
@@ -84,8 +79,8 @@ router.get("/auth/discord/callback", async (req, res): Promise<void> => {
   const returnedState =
     typeof req.query.state === "string" ? req.query.state : null;
   const storedState = req.cookies?.[STATE_COOKIE];
-  const callbackUrl = redirectUri();
-  const clientId = process.env.DISCORD_CLIENT_ID;
+  const callbackUrl = discordRedirectUri();
+  const clientId = process.env.DISCORD_CLIENT_ID?.trim();
   const clientSecret = process.env.DISCORD_CLIENT_SECRET;
   const guildId = misakiGuildId();
 
@@ -94,7 +89,7 @@ router.get("/auth/discord/callback", async (req, res): Promise<void> => {
     !code ||
     !returnedState ||
     typeof storedState !== "string" ||
-    returnedState.length !== storedState.length ||
+    Buffer.byteLength(returnedState) !== Buffer.byteLength(storedState) ||
     !timingSafeEqual(Buffer.from(returnedState), Buffer.from(storedState))
   ) {
     res.redirect("/?auth=cancelled");

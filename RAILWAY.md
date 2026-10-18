@@ -3,7 +3,7 @@
 Le service Railway sert le site, l’API et le bot Discord dans un même processus permanent. Ne pas lancer plusieurs répliques du bot.
 
 1. Importer le dépôt dans Railway, conserver la racine du monorepo et utiliser `railway.json`.
-2. Ajouter PostgreSQL et définir `DATABASE_URL` pour le service. Sur une nouvelle base, appliquer explicitement le schéma avec `pnpm --filter @workspace/db run push` avant la première utilisation. Ne pas remplacer ou écraser une base existante.
+2. Ajouter PostgreSQL et relier sa variable `DATABASE_URL` au **service API/site**. Au démarrage, `@workspace/api-server start` lance `@workspace/db init` avant d’ouvrir le serveur et de connecter le bot. Sur une base neuve, les sept tables de l’application sont créées dans une transaction. Une base existante complète est simplement vérifiée; aucun compte, score ou défi n’est supprimé. Une base partiellement initialisée est refusée avec un message explicite : faire alors une migration examinée, jamais un reset ou un `push-force`.
 3. Ajouter `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_BOT_TOKEN`, `DISCORD_MISAKI_GUILD_ID` (serveur principal : vocal, connexion et commandes) et `DISCORD_RECRUITMENT_GUILD_ID` (serveur des candidatures). L’ancienne variable `DISCORD_GUILD_ID` reste un alias de secours du serveur principal, mais ne pas y mettre le serveur recrutement. Aucune liste de salons n’est nécessaire : seuls les salons vocaux où `@everyone` a Voir le salon et Se connecter sont comptés (hors AFK et conférences).
 4. Dans le service Railway → Settings → Networking → Public Networking → Generate Domain, créer le domaine public `*.up.railway.app`. Aucun achat de domaine personnel n’est nécessaire. Définir `DISCORD_REDIRECT_URI` à `https://VOTRE-DOMAINE/api/auth/discord/callback` et ajouter exactement cette URL dans Discord Developer Portal → votre application → OAuth2 → Redirects → Save Changes. Vérifier que l’Application ID de cette application est bien `DISCORD_CLIENT_ID` et que son bot utilise `DISCORD_BOT_TOKEN`.
 5. Inviter le même bot sur le serveur recrutement correspondant à `https://discord.gg/CNKn4X4jJ`. Il lui faut Gérer les salons, Gérer les rôles/permissions, Voir les salons, Envoyer des messages, Intégrer des liens et Voir les anciens messages. Les candidatures créent un salon privé au pseudo du candidat; il peut le voir dès qu’il rejoint le serveur.
@@ -13,6 +13,14 @@ Le service Railway sert le site, l’API et le bot Discord dans un même process
 9. `/jointeam code:CODE` est disponible sur Misaki et répond en privé. Le compte est identifié par Discord et enregistré sans doublon, même sans première connexion au site. Une connexion ultérieure avec ce même compte retrouve son équipe. Un membre déjà dans une autre équipe ne peut pas changer d’équipe avec un autre code.
 
 Le bot doit être installé sur les deux serveurs. Une installation sur le recrutement ne donne pas accès à Misaki. Les commandes sont automatiquement enregistrées aussi lors de l’ajout du bot sur Misaki, sans redémarrage manuel.
+
+### Crash après démarrage et connexion Discord
+
+- `relation "dream_voice_sessions" does not exist` signifie que le schéma PostgreSQL n’a pas été initialisé sur la base reliée au service. Le nouveau démarrage inclut cette initialisation et ne laisse pas le bot démarrer avant sa réussite. Les erreurs Discord sont gérées et journalisées, sans devenir des erreurs de processus non interceptées.
+- Le service `@workspace/mockup-sandbox` est un outil de prévisualisation Replit, pas une application à lancer sur Railway. Ne pas le démarrer en production et ne pas contourner son erreur `BASE_PATH` : utiliser uniquement la commande de démarrage API/site de `railway.json`.
+- Les variables et secrets présents sur Replit ne sont pas automatiquement présents sur Railway. Sur le service Railway API/site, renseigner `DISCORD_CLIENT_ID=1561196644601438330`, le `DISCORD_CLIENT_SECRET` de cette application, `DISCORD_BOT_TOKEN`, les deux IDs de serveurs et `DATABASE_URL`.
+- Définir `DISCORD_REDIRECT_URI=https://dreamteammisaki.up.railway.app/api/auth/discord/callback` et ajouter **exactement** cette adresse dans Discord Developer Portal → OAuth2 → Redirects. Si l’URI explicite est absente, le code peut utiliser `RAILWAY_PUBLIC_DOMAIN`; il ne choisit jamais un domaine de développement Replit en production.
+- Un 502 Railway bloque aussi `/api/auth/discord/login` : le résoudre avant de diagnostiquer une erreur d’autorisation Discord. Un 503 JSON sur cette route, une fois le serveur disponible, indique désormais les noms des variables OAuth manquantes ou invalides, jamais leurs valeurs secrètes.
 
 ### Version de pnpm et installation reproductible
 

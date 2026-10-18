@@ -9,11 +9,12 @@ import { misakiGuildId } from "./discordConfig";
 import { handleJoinTeamInteraction, registerJoinTeamCommand } from "./joinTeamCommand";
 
 let client: Client | undefined;
+let trackingInitialized = false;
 
 export function getDiscordBot(): Client | undefined { return client; }
 
 export function isVoiceBotConnected(): boolean {
-  return Boolean(client?.isReady() && client.guilds.cache.has(misakiGuildId() ?? ""));
+  return Boolean(trackingInitialized && client?.isReady() && client.guilds.cache.has(misakiGuildId() ?? ""));
 }
 
 async function startTrackedSession(
@@ -147,8 +148,20 @@ export function startVoiceBot(): void {
     intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates],
   });
 
+  client.on(Events.Error, (error: Error) => {
+    trackingInitialized = false;
+    logger.error({ err: error }, "Discord bot error; the HTTP server remains available");
+  });
+
   client.on(Events.ClientReady, async (readyClient) => {
-    await stopAllTrackedSessions();
+    trackingInitialized = false;
+    try {
+      await stopAllTrackedSessions();
+      trackingInitialized = true;
+    } catch (error) {
+      logger.error({ err: error }, "Voice tracking could not initialize; check the database schema before retrying");
+      return;
+    }
     logger.info({ guildId: guildId ?? null }, "Discord bot connected");
     if (process.env.DISCORD_CLIENT_ID !== readyClient.user.id) {
       logger.error("DISCORD_CLIENT_ID does not match the connected bot application. OAuth must use the same Discord application.");
@@ -189,8 +202,10 @@ export function startVoiceBot(): void {
   });
 
   client.on(Events.InteractionCreate, interaction => {
-    void handleTeamInteraction(interaction, guildId);
-    void handleJoinTeamInteraction(interaction, guildId);
+    void Promise.all([
+      handleTeamInteraction(interaction, guildId),
+      handleJoinTeamInteraction(interaction, guildId),
+    ]).catch((error: unknown) => logger.error({ err: error }, "Could not process a Discord command"));
   });
 
   // Installing the bot after startup should not require a manual restart.
@@ -235,6 +250,7 @@ export function startVoiceBot(): void {
   });
 
   client.on(Events.ShardDisconnect, () => {
+    trackingInitialized = false;
     void stopAllTrackedSessions().catch((error: unknown) => {
       logger.error(
         { message: error instanceof Error ? error.message : "unknown error" },
