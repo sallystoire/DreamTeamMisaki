@@ -1,0 +1,16 @@
+{
+  "$schema": "https://schema.railpack.com",
+  "provider": "node",
+  "packages": {
+    "node": "24",
+    "pnpm": "10.26.1"
+  },
+  "steps": {
+    "install": {
+      "commands": [
+        "node --version && pnpm --version",
+        "..."
+      ]
+    }
+  }
+}

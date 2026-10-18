@@ -16,7 +16,11 @@ Le bot doit être installé sur les deux serveurs. Une installation sur le recru
 
 ### Version de pnpm et installation reproductible
 
-Le champ `packageManager` du `package.json` racine fixe pnpm à `10.26.1`. Railway/Railpack doit utiliser cette version : les réglages `overrides` sont dans `pnpm-workspace.yaml`, et une ancienne version de pnpm peut les interpréter différemment et refuser le lockfile.
+Les champs `packageManager` et `engines.pnpm` du `package.json` racine, ainsi que `packages.pnpm` dans `railpack.json`, fixent pnpm à `10.26.1`. Le runtime Node est fixé à la branche 24. Les réglages `overrides` sont dans `pnpm-workspace.yaml`; pnpm 9 refuse ce lockfile avec `ERR_PNPM_LOCKFILE_CONFIG_MISMATCH`, ce qui a été reproduit dans une copie propre du projet.
+
+Railpack effectue son installation **avant** la commande de compilation de `railway.json`. Modifier seulement cette commande de compilation ne peut donc pas corriger une erreur de l’installation automatique. `railpack.json` configure cette étape et affiche les versions Node/pnpm avant de conserver les commandes d’installation automatiques. `railway.json` ne lance pas une seconde installation.
+
+Après modification, envoyer **ensemble** `package.json`, `railpack.json` et `railway.json` au dépôt connecté et déployer ce nouveau commit. Le log de l’étape `install` doit afficher `10.26.1`. Si cette ligne n’apparaît pas, vérifier le commit déployé, le dossier racine du service et une éventuelle variable Railway `RAILPACK_CONFIG_FILE` qui sélectionnerait un autre fichier.
 
 Conserver `--frozen-lockfile` pendant le déploiement. Après un changement de dépendances, régénérer le lockfile avec cette même version de pnpm et envoyer ensemble `package.json`, `pnpm-workspace.yaml` et `pnpm-lock.yaml` au dépôt utilisé par Railway. La racine du service doit être celle du monorepo, pas un sous-dossier `artifacts/`.
 
